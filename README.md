@@ -1,9 +1,7 @@
-<p align="center">
-  <h1>Novella</h1>
-</p>
-<p align="center">Build UI components from the comfort of Visual Studio Code</p>
+Novella
+Build UI components from the comfort of Visual Studio Code
 
-Novella is a Visual Studio Code extension inspired by Storybook. View the UI component that you are working on side-by-side with the code, and watch it update live.
+Novella is a Visual Studio Code extension inspired by Storybook. View the UI component that you are working on side-by-side with the code.
 
 _GIF TBD_
 
@@ -22,9 +20,3 @@ For example if there is an image subfolder under your extension project workspac
 ## Requirements
 
 - _Something about webpack knowledge, setting up a config relevant for your environment, etc._
-
-## Extension Settings
-
-This extension contributes the following settings:
-
-- `novella.webpackConfigFile`: The file and path - relative the root of the workspace - to read the novella webpack config file from
