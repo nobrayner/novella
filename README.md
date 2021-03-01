@@ -1,4 +1,5 @@
-Novella
+# Novella
+
 Build UI components from the comfort of Visual Studio Code
 
 Novella is a Visual Studio Code extension inspired by Storybook. View the UI component that you are working on side-by-side with the code.
