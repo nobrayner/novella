@@ -18,6 +18,14 @@ async function getConfig(
     library: 'Component',
     libraryTarget: 'var',
   }
+  config.optimization = {
+    ...config.optimization,
+    minimize: false,
+  }
+  config.externals = {
+    react: 'React',
+    'react-dom': 'ReactDOM',
+  }
   config.entry = path.resolve(document.uri.fsPath)
   config.context = path.resolve(workspacePath)
   config.mode = 'production'

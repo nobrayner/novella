@@ -121,7 +121,6 @@ export class PreviewPanel {
 
     // Start the compiler to watch for changes
     this._compiler.watch({}, this._onWebpackCompile) //this._onWebpackCompile)
-    console.log(`Watching ${this._document.fileName} for changes...`)
   }
 
   private _update() {
@@ -163,12 +162,12 @@ export class PreviewPanel {
         console.warn(warning.message)
       })
     } else {
-      console.log(`Compilation completed successfully!`)
-      const componentCode = PreviewPanel.currentPanel?._compiler.outputFileSystem
-        // @ts-ignore
-        .readFileSync('/dist/component.js')
-        .toString()
       if (PreviewPanel.currentPanel) {
+        const componentCode = PreviewPanel.currentPanel?._compiler.outputFileSystem
+          // @ts-ignore
+          .readFileSync('/dist/component.js')
+          .toString()
+
         PreviewPanel.currentPanel._panel.webview.html = PreviewPanel.currentPanel._getHtmlForWebview(
           PreviewPanel.currentPanel._panel.webview,
           componentCode
@@ -203,13 +202,13 @@ export class PreviewPanel {
 <body>
   <div id="root"></div>
   <script>
-    (function () {
-      const vscode = acquireVsCodeApi()
-      vscode.postMessage({
-        command: 'info',
-        text: 'A message from the extension!'
-      })
-    }())
+    // (function () {
+    //   const vscode = acquireVsCodeApi()
+    //   vscode.postMessage({
+    //     command: 'info',
+    //     text: 'A message from the extension!'
+    //   })
+    // }())
   </script>
   <script src="${reactUri}"></script>
   <script src="${reactDomUri}"></script>
@@ -217,7 +216,7 @@ export class PreviewPanel {
     componentCode
       ? `<script>
       ${componentCode}
-      ReactDOM.render(Component.default(), document.getElementById('root'))
+      ReactDOM.render(React.createElement(Component.default, null), document.getElementById('root'))
     </script>`
       : ''
   }
