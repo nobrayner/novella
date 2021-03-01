@@ -1,8 +1,9 @@
 {
-  "name": "novella",
+	"name": "novella",
 	"displayName": "novella",
 	"description": "An in-vscode component viewer for rapidly developing components",
-	"version": "0.0.1",
+	"version": "0.1.0",
+	"license": "GNU GPLv3",
 	"engines": {
 		"vscode": "^1.53.0"
 	},
@@ -10,16 +11,35 @@
 		"Other"
 	],
 	"activationEvents": [
-        "onCommand:novella.helloWorld"
+		"onCommand:novella.preview"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "novella.helloWorld",
-				"title": "Hello World"
+				"command": "novella.preview",
+				"category": "Novella",
+				"title": "Start Preview",
+				"icon": {
+					"light": "assets/eye-dark.svg",
+					"dark": "assets/eye-light.svg"
+				}
 			}
-		]
+		],
+		"menus": {
+			"editor/title": [
+				{
+					"command": "novella.preview",
+					"when": "editorLangId == typescriptreact",
+					"group": "navigation"
+				},
+				{
+					"command": "novella.preview",
+					"when": "editorLangId == javascriptreact",
+					"group": "navigation"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "yarn run compile",
@@ -30,16 +50,24 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@types/vscode": "^1.53.0",
 		"@types/glob": "^7.1.3",
 		"@types/mocha": "^8.0.4",
 		"@types/node": "^12.11.7",
-		"eslint": "^7.19.0",
+		"@types/react": "^17.0.2",
+		"@types/react-dom": "^17.0.1",
+		"@types/vscode": "^1.53.0",
 		"@typescript-eslint/eslint-plugin": "^4.14.1",
 		"@typescript-eslint/parser": "^4.14.1",
+		"eslint": "^7.19.0",
 		"glob": "^7.1.6",
 		"mocha": "^8.2.1",
 		"typescript": "^4.1.3",
 		"vscode-test": "^1.5.0"
+	},
+	"dependencies": {
+		"memfs": "^3.2.0",
+		"react": "^17.0.1",
+		"react-dom": "^17.0.1",
+		"webpack": "^5.23.0"
 	}
 }
