@@ -13,8 +13,16 @@ export function activate(context: vscode.ExtensionContext) {
       const activeDocument = vscode.window.activeTextEditor.document
       const compiler = await getCompiler(activeDocument)
 
-      PreviewPanel.createOrShow(context.extensionUri, activeDocument, compiler)
+      await PreviewPanel.createOrShow(
+        context.extensionUri,
+        activeDocument,
+        compiler
+      )
     })
+  )
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('novella.noop', () => {})
   )
 }
 

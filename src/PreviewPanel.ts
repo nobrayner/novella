@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import path from 'path'
+import fs from 'fs'
 import {
   Compiler as WebpackCompiler,
   Stats as WebpackCompileStats,
@@ -7,7 +8,7 @@ import {
 // import { getNonce } from "./getNonce";
 
 export class PreviewPanel {
-  // Track the currentl panel. Only allow a single panel to exist at a time.
+  // Track the current panel. Only allow a single panel to exist at a time.
   public static currentPanel: PreviewPanel | undefined
 
   public static readonly viewType = 'novella-preview'
@@ -20,33 +21,46 @@ export class PreviewPanel {
   private readonly _extensionUri: vscode.Uri
   private _disposables: vscode.Disposable[] = []
 
-  public static createOrShow(
+  public static async createOrShow(
     extensionUri: vscode.Uri,
     document: vscode.TextDocument,
     compiler: WebpackCompiler
   ) {
-    const viewColumn = vscode.ViewColumn.Beside
+    const previewColumn = vscode.ViewColumn.Beside
 
     // If we already have a panel, show it.
     if (PreviewPanel.currentPanel) {
       PreviewPanel.currentPanel.trackDocument(document, compiler)
-      PreviewPanel.currentPanel._panel.reveal(viewColumn)
+      PreviewPanel.currentPanel._panel.reveal(previewColumn)
       return
     }
 
-    // Otherwise, create a new panel.
+    const currentViewColumn = vscode.window.activeTextEditor?.viewColumn ?? 1
+
+    // Create a new panel
     const panel = vscode.window.createWebviewPanel(
       PreviewPanel.viewType,
       `Preview ${path.basename(document.fileName)}`,
-      viewColumn,
+      previewColumn,
       {
-        // Enable javascript in the webview
         enableScripts: true,
-
-        // And restrict the webview to only loading content from our extension's `media` directory.
-        localResourceRoots: [extensionUri],
+        localResourceRoots: [
+          extensionUri,
+          vscode.workspace.workspaceFolders![0].uri,
+        ],
       }
     )
+
+    // Open the novella config file (if it exists)
+    const novellaDataFile = path.resolve(
+      document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
+        '.novella.js'
+    )
+    try {
+      const doc = await vscode.workspace.openTextDocument(novellaDataFile)
+      await vscode.commands.executeCommand('workbench.action.splitEditorDown')
+      await vscode.window.showTextDocument(doc, currentViewColumn + 2)
+    } catch {}
 
     PreviewPanel.currentPanel = new PreviewPanel(
       panel,
@@ -192,6 +206,21 @@ export class PreviewPanel {
       )
     )
 
+    const novellaDataPath = path.resolve(
+      this._document.uri.fsPath.substring(
+        0,
+        this._document.uri.fsPath.lastIndexOf('.')
+      ) + '.novella.js'
+    )
+    const novellaDataUri = webview.asWebviewUri(
+      vscode.Uri.file(novellaDataPath)
+    )
+    let hasNovellaData = false
+    try {
+      fs.statSync(novellaDataPath)
+      hasNovellaData = true
+    } catch {}
+
     return `
 <!DOCTYPE html>
 <html>
@@ -200,23 +229,35 @@ export class PreviewPanel {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-  <div id="root"></div>
   <script>
-    // (function () {
-    //   const vscode = acquireVsCodeApi()
-    //   vscode.postMessage({
-    //     command: 'info',
-    //     text: 'A message from the extension!'
-    //   })
-    // }())
+  (function () {
+    const vscode = acquireVsCodeApi()
+  }())
   </script>
+  <div id="preview"></div>
   <script src="${reactUri}"></script>
   <script src="${reactDomUri}"></script>
   ${
+    hasNovellaData
+      ? `<script type="module" src="${novellaDataUri}"></script>`
+      : ''
+  }
+  ${
     componentCode
-      ? `<script>
+      ? `<script type="module">
+      ${
+        hasNovellaData
+          ? `import novellaData from '${novellaDataUri}'`
+          : 'const novellaData = undefined'
+      }
       ${componentCode}
-      ReactDOM.render(React.createElement(Component.default, null), document.getElementById('root'))
+      ReactDOM.render(
+        React.createElement(
+          Component.default,
+          novellaData?.props ? novellaData.props : null
+        ),
+        document.getElementById('preview')
+      )
     </script>`
       : ''
   }
