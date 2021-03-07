@@ -1,11 +1,8 @@
 import * as vscode from 'vscode'
 import path from 'path'
-import fs from 'fs'
-import {
-  Compiler as WebpackCompiler,
-  Stats as WebpackCompileStats,
-} from 'webpack'
-// import { getNonce } from "./getNonce";
+import * as rollup from 'rollup'
+import { getConfigs } from './bundler'
+import { NovellaPreset } from './types'
 
 export class PreviewPanel {
   // Track the current panel. Only allow a single panel to exist at a time.
@@ -14,8 +11,9 @@ export class PreviewPanel {
   public static readonly viewType = 'novella-preview'
 
   private readonly _panel: vscode.WebviewPanel
-  private _compiler: WebpackCompiler
   private _document: vscode.TextDocument
+  private _preset: NovellaPreset
+  private _watcher: rollup.RollupWatcher | undefined
   private _lastCompilationHash: string | undefined
 
   private readonly _extensionUri: vscode.Uri
@@ -24,13 +22,13 @@ export class PreviewPanel {
   public static async createOrShow(
     extensionUri: vscode.Uri,
     document: vscode.TextDocument,
-    compiler: WebpackCompiler
+    preset: NovellaPreset
   ) {
     const previewColumn = vscode.ViewColumn.Beside
 
     // If we already have a panel, show it.
     if (PreviewPanel.currentPanel) {
-      PreviewPanel.currentPanel.trackDocument(document, compiler)
+      PreviewPanel.currentPanel.trackDocument(document, preset)
       PreviewPanel.currentPanel._panel.reveal(previewColumn)
       return
     }
@@ -45,8 +43,11 @@ export class PreviewPanel {
       {
         enableScripts: true,
         localResourceRoots: [
-          extensionUri,
-          vscode.workspace.workspaceFolders![0].uri,
+          vscode.Uri.joinPath(
+            vscode.workspace.workspaceFolders![0].uri,
+            'node_modules'
+          ),
+          vscode.Uri.joinPath(extensionUri, 'assets'),
         ],
       }
     )
@@ -66,9 +67,8 @@ export class PreviewPanel {
       panel,
       extensionUri,
       document,
-      compiler
+      preset
     )
-    PreviewPanel.currentPanel.trackDocument(document, compiler)
   }
 
   public static kill() {
@@ -80,26 +80,18 @@ export class PreviewPanel {
     panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
     document: vscode.TextDocument,
-    compiler: WebpackCompiler
+    preset: NovellaPreset
   ) {
     this._panel = panel
     this._extensionUri = extensionUri
     this._document = document
-    this._compiler = compiler
-
-    // Set the webview's initial html content
-    this._update()
+    this._preset = preset
 
     // Listen for when the panel is disposed
     // This happens when the user closes the panel or when the panel is closed programatically
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
 
-    // Handle messages from the webview
-    this._panel.webview.onDidReceiveMessage(
-      this._onDidReceiveMessage,
-      null,
-      this._disposables
-    )
+    this.trackDocument(document, preset)
   }
 
   public dispose() {
@@ -107,9 +99,7 @@ export class PreviewPanel {
 
     // Clean up our resources
     this._panel.dispose()
-    this._compiler.close(() => {
-      console.log(`Stopped watching ${this._document.fileName}`)
-    })
+    this._watcher?.close()
 
     while (this._disposables.length) {
       const x = this._disposables.pop()
@@ -119,107 +109,77 @@ export class PreviewPanel {
     }
   }
 
-  public trackDocument(
-    document: vscode.TextDocument,
-    compiler: WebpackCompiler
-  ) {
-    this._compiler.close(() =>
-      console.log(`Stopped watching ${this._document.fileName}`)
-    )
+  public trackDocument(document: vscode.TextDocument, preset: NovellaPreset) {
+    // Stop watching any existing components
+    this._watcher?.close()
 
     this._document = document
-    this._compiler = compiler
+    this._preset = preset
+
+    this._watcher = rollup.watch(getConfigs(preset, document))
+    this._watcher.on('event', this._onWatchEvent.bind(this))
 
     this._panel.title = `Preview ${path.basename(document.fileName)}`
     this._update()
+  }
 
-    // Start the compiler to watch for changes
-    this._compiler.watch({}, this._onWebpackCompile) //this._onWebpackCompile)
+  private async _onWatchEvent(event: rollup.RollupWatcherEvent) {
+    switch (event.code) {
+      case 'ERROR':
+        vscode.window.showErrorMessage(event.error.message)
+        event.result?.close()
+        break
+      case 'BUNDLE_END':
+        const { output } = await event.result.generate({
+          name: 'Component',
+          format: 'iife',
+          globals: this._preset.globals(),
+        })
+        event.result.close()
+
+        let allChunkCode = ''
+        for (const chunkOrAsset of output) {
+          if (chunkOrAsset.type === 'asset') {
+            console.log('Asset', chunkOrAsset.fileName)
+          } else {
+            allChunkCode += chunkOrAsset.code
+          }
+        }
+
+        this._panel.webview.html = this._getHtmlForWebview(
+          this._panel.webview,
+          allChunkCode
+        )
+
+        break
+    }
   }
 
   private _update() {
     this._panel.webview.html = this._getHtmlForWebview(this._panel.webview)
   }
 
-  private _onDidReceiveMessage(message: any) {
-    switch (message.command) {
-      case 'info':
-        vscode.window.showInformationMessage(message.text)
-        break
-      case 'error':
-        vscode.window.showErrorMessage(message.text)
-    }
-  }
-
-  private _onWebpackCompile(error?: Error, result?: WebpackCompileStats) {
-    if (error) {
-      console.error(error)
-      return
-    }
-
-    const stats = result!
-    if (this._lastCompilationHash === stats.hash) {
-      return
-    }
-
-    this._lastCompilationHash = stats.hash
-    const info = stats.toJson()
-
-    if (stats.hasErrors()) {
-      console.error(`Compilation completed with ${info.errorsCount} errors:`)
-      info.errors?.forEach((error) => {
-        console.error(error.message)
-      })
-    } else if (stats.hasWarnings()) {
-      console.warn(`Compilation completed with ${info.warningsCount} warnings:`)
-      info.warnings?.forEach((warning) => {
-        console.warn(warning.message)
-      })
-    } else {
-      if (PreviewPanel.currentPanel) {
-        const componentCode = PreviewPanel.currentPanel?._compiler.outputFileSystem
-          // @ts-ignore
-          .readFileSync('/dist/component.js')
-          .toString()
-
-        PreviewPanel.currentPanel._panel.webview.html = PreviewPanel.currentPanel._getHtmlForWebview(
-          PreviewPanel.currentPanel._panel.webview,
-          componentCode
-        )
-      }
-    }
-  }
-
   private _getHtmlForWebview(webview: vscode.Webview, componentCode?: string) {
+    const workspaceUri = vscode.workspace.workspaceFolders![0].uri
+
     const reactUri = webview.asWebviewUri(
       vscode.Uri.joinPath(
-        this._extensionUri,
+        workspaceUri,
         'node_modules/react/umd',
         'react.development.js'
       )
     )
     const reactDomUri = webview.asWebviewUri(
       vscode.Uri.joinPath(
-        this._extensionUri,
+        workspaceUri,
         'node_modules/react-dom/umd',
         'react-dom.development.js'
       )
     )
 
-    const novellaDataPath = path.resolve(
-      this._document.uri.fsPath.substring(
-        0,
-        this._document.uri.fsPath.lastIndexOf('.')
-      ) + '.novella.js'
+    const resetCssUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'assets', 'reset.css')
     )
-    const novellaDataUri = webview.asWebviewUri(
-      vscode.Uri.file(novellaDataPath)
-    )
-    let hasNovellaData = false
-    try {
-      fs.statSync(novellaDataPath)
-      hasNovellaData = true
-    } catch {}
 
     return `
 <!DOCTYPE html>
@@ -227,38 +187,15 @@ export class PreviewPanel {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="${resetCssUri}">
 </head>
 <body>
-  <script>
-  (function () {
-    const vscode = acquireVsCodeApi()
-  }())
-  </script>
   <div id="preview"></div>
   <script src="${reactUri}"></script>
   <script src="${reactDomUri}"></script>
   ${
-    hasNovellaData
-      ? `<script type="module" src="${novellaDataUri}"></script>`
-      : ''
-  }
-  ${
     componentCode
-      ? `<script type="module">
-      ${
-        hasNovellaData
-          ? `import novellaData from '${novellaDataUri}'`
-          : 'const novellaData = undefined'
-      }
-      ${componentCode}
-      ReactDOM.render(
-        React.createElement(
-          Component.default,
-          novellaData?.props ? novellaData.props : null
-        ),
-        document.getElementById('preview')
-      )
-    </script>`
+      ? `<script>${componentCode}</script>` + this._preset.render()
       : ''
   }
 </body>

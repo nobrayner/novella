@@ -1,7 +1,6 @@
-import { Console } from 'console'
 import * as vscode from 'vscode'
 import { PreviewPanel } from './PreviewPanel'
-import { getCompiler } from './webpackCompiler'
+import presetReact from './preset-react'
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
@@ -11,12 +10,11 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       const activeDocument = vscode.window.activeTextEditor.document
-      const compiler = await getCompiler(activeDocument)
 
       await PreviewPanel.createOrShow(
         context.extensionUri,
         activeDocument,
-        compiler
+        presetReact
       )
     })
   )
