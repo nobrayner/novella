@@ -24,12 +24,6 @@
 					"light": "assets/eye-dark.svg",
 					"dark": "assets/eye-light.svg"
 				}
-			},
-			{
-				"command": "novella.noop",
-				"category": "Novella",
-				"title": "No-op",
-				"icon": "assets/eye-dark.svg"
 			}
 		],
 		"menus": {
@@ -42,11 +36,6 @@
 				{
 					"command": "novella.preview",
 					"when": "editorLangId == javascriptreact",
-					"group": "navigation"
-				},
-				{
-					"command": "novella.noop",
-					"when": "resourceFilename =~ /\\.novella\\.js$/",
 					"group": "navigation"
 				}
 			]
