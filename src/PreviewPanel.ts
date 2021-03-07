@@ -162,21 +162,6 @@ export class PreviewPanel {
   private _getHtmlForWebview(webview: vscode.Webview, componentCode?: string) {
     const workspaceUri = vscode.workspace.workspaceFolders![0].uri
 
-    const reactUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        workspaceUri,
-        'node_modules/react/umd',
-        'react.development.js'
-      )
-    )
-    const reactDomUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        workspaceUri,
-        'node_modules/react-dom/umd',
-        'react-dom.development.js'
-      )
-    )
-
     const resetCssUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'assets', 'reset.css')
     )
@@ -191,11 +176,21 @@ export class PreviewPanel {
 </head>
 <body>
   <div id="preview"></div>
-  <script src="${reactUri}"></script>
-  <script src="${reactDomUri}"></script>
+  ${this._preset
+    .scripts()
+    .map(
+      (scriptPath) =>
+        `<script src=${webview.asWebviewUri(
+          vscode.Uri.joinPath(workspaceUri, 'node_modules', scriptPath)
+        )}></script>`
+    )
+    .join('\n')}
   ${
     componentCode
-      ? `<script>${componentCode}</script>` + this._preset.render()
+      ? `<script>
+        ${componentCode}
+        ${this._preset.render()}
+      </script>`
       : ''
   }
 </body>

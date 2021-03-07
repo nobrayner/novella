@@ -27,6 +27,10 @@ function plugins(): Plugin[] {
   ]
 }
 
+function externals() {
+  return ['react', 'react-dom']
+}
+
 function globals() {
   return {
     react: 'React',
@@ -34,17 +38,22 @@ function globals() {
   }
 }
 
+function scripts() {
+  return [
+    'react/umd/react.development.js',
+    'react-dom/umd/react-dom.development.js',
+  ]
+}
+
 function render() {
-  return `
-<script>
-  ReactDOM.render(React.createElement(Component, null), document.getElementById('preview'))
-</script>
-  `
+  return `ReactDOM.render(React.createElement(Component, null), document.getElementById('preview'));`
 }
 
 const reactPreset: NovellaPreset = {
   plugins,
+  externals,
   globals,
+  scripts,
   render,
 }
 

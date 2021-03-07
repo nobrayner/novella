@@ -23,17 +23,8 @@ export function getConfigs(
   return [
     {
       input: path.resolve(document.uri.fsPath),
-      external: ['react', 'react-dom'],
-      output: {
-        format: 'iife',
-        name: 'Component',
-        sourcemap: false,
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-        },
-      },
-      plugins: [...preset.plugins()],
+      external: preset.externals(),
+      plugins: preset.plugins(),
       watch: {
         skipWrite: true,
       },
