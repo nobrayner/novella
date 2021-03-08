@@ -46,7 +46,7 @@ function scripts() {
 }
 
 function render() {
-  return `ReactDOM.render(React.createElement(Component, null), document.getElementById('preview'));`
+  return `ReactDOM.render(React.createElement(Component, novellaData?.props), document.getElementById('preview'));`
 }
 
 const reactPreset: NovellaPreset = {

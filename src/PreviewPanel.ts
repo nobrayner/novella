@@ -4,6 +4,11 @@ import * as rollup from 'rollup'
 import { getConfigs } from './bundler'
 import { NovellaPreset } from './types'
 
+type WebviewUpdate = {
+  component?: string
+  novellaData?: string
+}
+
 export class PreviewPanel {
   // Track the current panel. Only allow a single panel to exist at a time.
   public static currentPanel: PreviewPanel | undefined
@@ -11,10 +16,9 @@ export class PreviewPanel {
   public static readonly viewType = 'novella-preview'
 
   private readonly _panel: vscode.WebviewPanel
-  private _document: vscode.TextDocument
   private _preset: NovellaPreset
+  private _lastUpdate: WebviewUpdate | undefined
   private _watcher: rollup.RollupWatcher | undefined
-  private _lastCompilationHash: string | undefined
 
   private readonly _extensionUri: vscode.Uri
   private _disposables: vscode.Disposable[] = []
@@ -55,7 +59,7 @@ export class PreviewPanel {
     // Open the novella config file (if it exists)
     const novellaDataFile = path.resolve(
       document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
-        '.novella.js'
+        '.novella.jsx'
     )
     try {
       const doc = await vscode.workspace.openTextDocument(novellaDataFile)
@@ -84,12 +88,13 @@ export class PreviewPanel {
   ) {
     this._panel = panel
     this._extensionUri = extensionUri
-    this._document = document
     this._preset = preset
 
     // Listen for when the panel is disposed
     // This happens when the user closes the panel or when the panel is closed programatically
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
+
+    this._panel.webview.html = this._getHtmlForWebview(this._panel.webview)
 
     this.trackDocument(document, preset)
   }
@@ -113,14 +118,12 @@ export class PreviewPanel {
     // Stop watching any existing components
     this._watcher?.close()
 
-    this._document = document
     this._preset = preset
 
     this._watcher = rollup.watch(getConfigs(preset, document))
     this._watcher.on('event', this._onWatchEvent.bind(this))
 
     this._panel.title = `Preview ${path.basename(document.fileName)}`
-    this._update()
   }
 
   private async _onWatchEvent(event: rollup.RollupWatcherEvent) {
@@ -130,8 +133,10 @@ export class PreviewPanel {
         event.result?.close()
         break
       case 'BUNDLE_END':
+        const isNovella = /\.novella\.jsx?$/.test(event.input!.toString())
+
         const { output } = await event.result.generate({
-          name: 'Component',
+          name: isNovella ? 'novellaData' : 'Component',
           format: 'iife',
           globals: this._preset.globals(),
         })
@@ -146,20 +151,26 @@ export class PreviewPanel {
           }
         }
 
+        const update = { ...this._lastUpdate }
+
+        if (isNovella) {
+          update.novellaData = allChunkCode
+        } else {
+          update.component = allChunkCode
+        }
+
         this._panel.webview.html = this._getHtmlForWebview(
           this._panel.webview,
-          allChunkCode
+          update
         )
+
+        this._lastUpdate = update
 
         break
     }
   }
 
-  private _update() {
-    this._panel.webview.html = this._getHtmlForWebview(this._panel.webview)
-  }
-
-  private _getHtmlForWebview(webview: vscode.Webview, componentCode?: string) {
+  private _getHtmlForWebview(webview: vscode.Webview, update?: WebviewUpdate) {
     const workspaceUri = vscode.workspace.workspaceFolders![0].uri
 
     const resetCssUri = webview.asWebviewUri(
@@ -185,14 +196,9 @@ export class PreviewPanel {
         )}></script>`
     )
     .join('\n')}
-  ${
-    componentCode
-      ? `<script>
-        ${componentCode}
-        ${this._preset.render()}
-      </script>`
-      : ''
-  }
+  <script>${update?.component ?? 'const Component = null;\n'}${
+      update?.novellaData ?? 'const novellaData = null;\n'
+    }${this._preset.render()}</script>
 </body>
 </html>`
   }
