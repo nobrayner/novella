@@ -2,7 +2,7 @@
 	"name": "novella",
 	"displayName": "novella",
 	"description": "An in-vscode component viewer for rapidly developing components",
-	"version": "0.1.0",
+	"version": "0.3.0",
 	"license": "GNU GPLv3",
 	"engines": {
 		"vscode": "^1.53.0"
