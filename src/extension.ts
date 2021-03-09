@@ -9,10 +9,9 @@ const NOVELLA_CONFIG_URI = vscode.Uri.joinPath(
 )
 
 async function getNovellaConfig() {
-  delete require.cache[require.resolve(NOVELLA_CONFIG_URI.fsPath)]
-
   let novellaConfig: NovellaConfig | undefined = undefined
   try {
+    delete require.cache[require.resolve(NOVELLA_CONFIG_URI.fsPath)]
     novellaConfig = await import(NOVELLA_CONFIG_URI.fsPath)
   } catch (error) {}
   return novellaConfig
