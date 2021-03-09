@@ -8,10 +8,19 @@ import commonjs from '@rollup/plugin-commonjs'
 import image from '@rollup/plugin-image'
 import postcss from 'rollup-plugin-postcss'
 
-import { Plugin } from 'rollup'
+function render() {
+  return `ReactDOM.render(
+  React.createElement(
+    ...(novellaData?.wrapper
+    ? [novellaData.wrapper, null, React.createElement(Component, novellaData?.props)]
+    : [Component, novellaData?.props])
+  ),
+  document.getElementById('preview')
+);`
+}
 
-function plugins(): Plugin[] {
-  return [
+const reactPreset: NovellaPreset = {
+  plugins: [
     postcss({
       extensions: ['.css'],
     }),
@@ -27,43 +36,16 @@ function plugins(): Plugin[] {
     commonjs({
       include: ['node_modules/**'],
     }),
-  ]
-}
-
-function externals() {
-  return ['react', 'react-dom']
-}
-
-function globals() {
-  return {
+  ],
+  externals: ['react', 'react-dom'],
+  globals: {
     react: 'React',
     'react-dom': 'ReactDOM',
-  }
-}
-
-function scripts() {
-  return [
+  },
+  scripts: [
     'react/umd/react.development.js',
     'react-dom/umd/react-dom.development.js',
-  ]
-}
-
-function render() {
-  return `ReactDOM.render(
-  React.createElement(
-    ...(novellaData?.wrapper
-    ? [novellaData.wrapper, null, React.createElement(Component, novellaData?.props)]
-    : [Component, novellaData?.props])
-  ),
-  document.getElementById('preview')
-);`
-}
-
-const reactPreset: NovellaPreset = {
-  plugins,
-  externals,
-  globals,
-  scripts,
+  ],
   render,
 }
 

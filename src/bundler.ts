@@ -11,8 +11,8 @@ export function getConfigs(
   const configs: RollupWatchOptions[] = [
     {
       input: path.resolve(document.uri.fsPath),
-      external: preset.externals(),
-      plugins: preset.plugins(),
+      external: preset.externals,
+      plugins: preset.plugins,
       watch: {
         skipWrite: true,
       },
@@ -29,8 +29,8 @@ export function getConfigs(
     // A Novella exists for the component, add it to the config list
     configs.push({
       input: path.resolve(novellaDataPath),
-      external: preset.externals(),
-      plugins: preset.plugins(),
+      external: preset.externals,
+      plugins: preset.plugins,
       watch: {
         skipWrite: true,
       },

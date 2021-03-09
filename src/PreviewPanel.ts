@@ -171,7 +171,7 @@ export class PreviewPanel {
         const { output } = await event.result.generate({
           name: isNovella ? 'novellaData' : 'Component',
           format: 'iife',
-          globals: this._preset.globals(),
+          globals: this._preset.globals,
         })
         event.result.close()
 
@@ -220,15 +220,18 @@ export class PreviewPanel {
 </head>
 <body>
   <div id="preview"></div>
-  ${this._preset
-    .scripts()
-    .map(
-      (scriptPath) =>
-        `<script src=${webview.asWebviewUri(
-          vscode.Uri.joinPath(workspaceUri, 'node_modules', scriptPath)
-        )}></script>`
-    )
-    .join('\n')}
+  ${
+    this._preset.scripts
+      ? this._preset.scripts
+          .map(
+            (scriptPath) =>
+              `<script src=${webview.asWebviewUri(
+                vscode.Uri.joinPath(workspaceUri, 'node_modules', scriptPath)
+              )}></script>`
+          )
+          .join('\n')
+      : ''
+  }
   <script>${update?.component ?? 'const Component = null;\n'}${
       update?.novellaData ?? 'const novellaData = null;\n'
     }${this._preset.render()}</script>

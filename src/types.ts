@@ -1,9 +1,9 @@
-import { Plugin } from 'rollup'
+import rollup from 'rollup'
 
 export type NovellaPreset = {
-  plugins: () => Plugin[]
-  externals: () => string[]
-  globals: () => { [key: string]: string }
-  scripts: () => string[]
-  render: () => void
+  plugins: rollup.Plugin[]
+  externals?: rollup.ExternalOption
+  globals?: rollup.GlobalsOption
+  scripts?: string[]
+  render: () => string
 }
