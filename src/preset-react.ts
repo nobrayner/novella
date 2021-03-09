@@ -9,11 +9,38 @@ import image from '@rollup/plugin-image'
 import postcss from 'rollup-plugin-postcss'
 
 function render() {
-  return `ReactDOM.render(
+  return `class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: undefined };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return React.createElement(
+        React.Fragment,
+        null,
+        React.createElement('code', { style: { color: 'var(--vscode-editorError-foreground)', padding: '1rem' }}, this.state.error.toString())
+      );
+    }
+
+    return this.props.children; 
+  }
+}
+
+ReactDOM.render(
   React.createElement(
-    ...(novellaData?.wrapper
-    ? [novellaData.wrapper, null, React.createElement(Component, novellaData?.props)]
-    : [Component, novellaData?.props])
+    ErrorBoundary,
+    null,
+    React.createElement(
+      ...(novellaData?.wrapper
+      ? [novellaData.wrapper, null, React.createElement(Component, novellaData?.props)]
+      : [Component, novellaData?.props])
+    )
   ),
   document.getElementById('preview')
 );`
