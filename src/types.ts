@@ -7,3 +7,7 @@ export type NovellaPreset = {
   scripts?: string[]
   render: () => string
 }
+
+export type NovellaConfig = {
+  preset: NovellaPreset
+}

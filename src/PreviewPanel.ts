@@ -126,8 +126,7 @@ export class PreviewPanel {
     // Listen for when the panel is disposed
     // This happens when the user closes the panel or when the panel is closed programatically
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
-
-    this._panel.webview.html = this._getHtmlForWebview(this._panel.webview)
+    this._update()
 
     this.trackDocument(document, preset)
   }
@@ -157,6 +156,14 @@ export class PreviewPanel {
     this._watcher.on('event', this._onWatchEvent.bind(this))
 
     this._panel.title = `Preview ${path.basename(document.fileName)}`
+  }
+
+  private _update(update?: WebviewUpdate) {
+    this._panel.webview.html = this._getHtmlForWebview(
+      this._panel.webview,
+      update
+    )
+    this._lastUpdate = update
   }
 
   private async _onWatchEvent(event: rollup.RollupWatcherEvent) {
@@ -192,12 +199,7 @@ export class PreviewPanel {
           update.component = allChunkCode
         }
 
-        this._panel.webview.html = this._getHtmlForWebview(
-          this._panel.webview,
-          update
-        )
-
-        this._lastUpdate = update
+        this._update(update)
 
         break
     }
