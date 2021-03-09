@@ -9,11 +9,41 @@ type WebviewUpdate = {
   novellaData?: string
 }
 
+function getFilePathForNovellaDataFileFor(document: vscode.TextDocument) {
+  return path.resolve(
+    document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
+      '.novella.jsx'
+  )
+}
+
+async function openNovellaDataFileFor(
+  document: vscode.TextDocument,
+  opts?: {
+    viewColumn?: number
+    splitEditor?: boolean
+  }
+) {
+  const options = {
+    viewColumn: 3,
+    splitEditor: true,
+    ...opts,
+  }
+
+  const novellaDataFile = getFilePathForNovellaDataFileFor(document)
+  try {
+    const doc = await vscode.workspace.openTextDocument(novellaDataFile)
+    if (options.splitEditor) {
+      await vscode.commands.executeCommand('workbench.action.splitEditorDown')
+    }
+    await vscode.window.showTextDocument(doc, options.viewColumn)
+  } catch {}
+}
+
 export class PreviewPanel {
   // Track the current panel. Only allow a single panel to exist at a time.
   public static currentPanel: PreviewPanel | undefined
 
-  public static readonly viewType = 'novella-preview'
+  public static readonly viewType = 'novellaPreview'
 
   private readonly _panel: vscode.WebviewPanel
   private _preset: NovellaPreset
@@ -34,6 +64,14 @@ export class PreviewPanel {
     if (PreviewPanel.currentPanel) {
       PreviewPanel.currentPanel.trackDocument(document, preset)
       PreviewPanel.currentPanel._panel.reveal(previewColumn)
+
+      vscode.workspace
+      await openNovellaDataFileFor(document, {
+        // The column after the preview column is the one we want
+        viewColumn: PreviewPanel.currentPanel._panel.viewColumn! + 1,
+        splitEditor: false,
+      })
+
       return
     }
 
@@ -57,15 +95,10 @@ export class PreviewPanel {
     )
 
     // Open the novella config file (if it exists)
-    const novellaDataFile = path.resolve(
-      document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
-        '.novella.jsx'
-    )
-    try {
-      const doc = await vscode.workspace.openTextDocument(novellaDataFile)
-      await vscode.commands.executeCommand('workbench.action.splitEditorDown')
-      await vscode.window.showTextDocument(doc, currentViewColumn + 2)
-    } catch {}
+    // Add two to the current view column (+1 is the Preview, +2 becomes the the next editor after the preview)
+    await openNovellaDataFileFor(document, {
+      viewColumn: currentViewColumn + 2,
+    })
 
     PreviewPanel.currentPanel = new PreviewPanel(
       panel,

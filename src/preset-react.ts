@@ -4,6 +4,8 @@ import { NovellaPreset } from './types'
 import sucrase from '@rollup/plugin-sucrase'
 import nodeResolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
+// @ts-ignore
+import image from '@rollup/plugin-image'
 import postcss from 'rollup-plugin-postcss'
 
 import { Plugin } from 'rollup'
@@ -13,6 +15,7 @@ function plugins(): Plugin[] {
     postcss({
       extensions: ['.css'],
     }),
+    image(),
     nodeResolve({
       extensions: ['.js', '.ts', '.jsx', '.tsx'],
       browser: true,
