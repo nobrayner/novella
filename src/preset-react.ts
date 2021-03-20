@@ -3,10 +3,29 @@ import { NovellaPreset } from './types'
 // @ts-ignore
 import sucrase from '@rollup/plugin-sucrase'
 import nodeResolve from '@rollup/plugin-node-resolve'
-import commonjs from '@rollup/plugin-commonjs'
-// @ts-ignore
-import image from '@rollup/plugin-image'
-import postcss from 'rollup-plugin-postcss'
+
+const reactPreset: NovellaPreset = {
+  plugins: [
+    nodeResolve({
+      extensions: ['.js', '.ts', '.jsx', '.tsx'],
+      browser: true,
+    }),
+    sucrase({
+      exclude: ['node_modules/**'],
+      transforms: ['jsx', 'typescript'],
+    }),
+  ],
+  externals: ['react', 'react-dom'],
+  globals: {
+    react: 'React',
+    'react-dom': 'ReactDOM',
+  },
+  scripts: [
+    'react/umd/react.development.js',
+    'react-dom/umd/react-dom.development.js',
+  ],
+  render,
+}
 
 function render() {
   return `class ErrorBoundary extends React.Component {
@@ -20,11 +39,17 @@ function render() {
   }
 
   render() {
+    console.log(this.props.children)
     if (this.state.error) {
-      return React.createElement(
-        React.Fragment,
-        null,
-        React.createElement('code', { style: { color: 'var(--vscode-editorError-foreground)', padding: '1rem' }}, this.state.error.toString())
+      React.createElement(
+        'code',
+        {
+          style: {
+            color: 'var(--vscode-editorError-foreground)',
+            padding: '1rem',
+          }
+        },
+        this.state.error.toString()
       );
     }
 
@@ -44,36 +69,6 @@ ReactDOM.render(
   ),
   document.getElementById('preview')
 );`
-}
-
-const reactPreset: NovellaPreset = {
-  plugins: [
-    postcss({
-      extensions: ['.css'],
-    }),
-    image(),
-    nodeResolve({
-      extensions: ['.js', '.ts', '.jsx', '.tsx'],
-      browser: true,
-    }),
-    sucrase({
-      exclude: ['node_modules/**'],
-      transforms: ['jsx', 'typescript'],
-    }),
-    commonjs({
-      include: ['node_modules/**'],
-    }),
-  ],
-  externals: ['react', 'react-dom'],
-  globals: {
-    react: 'React',
-    'react-dom': 'ReactDOM',
-  },
-  scripts: [
-    'react/umd/react.development.js',
-    'react-dom/umd/react-dom.development.js',
-  ],
-  render,
 }
 
 export default reactPreset

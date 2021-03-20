@@ -8,12 +8,15 @@ const NOVELLA_CONFIG_URI = vscode.Uri.joinPath(
   'novella.config.js'
 )
 
-async function getNovellaConfig() {
+async function getNovellaConfig(): Promise<NovellaConfig | undefined> {
   let novellaConfig: NovellaConfig | undefined = undefined
+  // TODO: Figure out how to deal with presets properly, and other config stuff
   try {
     delete require.cache[require.resolve(NOVELLA_CONFIG_URI.fsPath)]
     novellaConfig = await import(NOVELLA_CONFIG_URI.fsPath)
-  } catch (error) {}
+  } catch (error) {
+    console.warn(error)
+  }
   return novellaConfig
 }
 
@@ -25,15 +28,14 @@ export async function activate(context: vscode.ExtensionContext) {
       }
 
       const config = await getNovellaConfig()
-      const preset = config ? config.preset : presetReact
+      const preset = presetReact
 
       const activeDocument = vscode.window.activeTextEditor.document
 
-      await PreviewPanel.createOrShow(
-        context.extensionUri,
-        activeDocument,
-        preset
-      )
+      await PreviewPanel.createOrShow(context.extensionUri, activeDocument, {
+        preset,
+        ...config,
+      })
     })
   )
 }

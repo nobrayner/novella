@@ -2,12 +2,23 @@ import rollup from 'rollup'
 
 export type NovellaPreset = {
   plugins: rollup.Plugin[]
-  externals?: rollup.ExternalOption
+  externals?: (string | RegExp)[]
   globals?: rollup.GlobalsOption
   scripts?: string[]
   render: () => string
 }
 
-export type NovellaConfig = {
-  preset: NovellaPreset
+type Aliases = {
+  [alias: string]: string
 }
+
+export type NovellaConfig = {
+  aliases?: Aliases
+  augment?: Partial<Omit<NovellaPreset, 'render'>>
+  css?: string[]
+  // preset?: NovellaPreset
+}
+
+export type PreviewOptions = {
+  preset: NovellaPreset
+} & NovellaConfig

@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import path from 'path'
 import * as rollup from 'rollup'
 import { getConfigs } from './bundler'
-import { NovellaPreset } from './types'
+import { PreviewOptions } from './types'
 
 type WebviewUpdate = {
   component?: string
@@ -46,7 +46,7 @@ export class PreviewPanel {
   public static readonly viewType = 'novellaPreview'
 
   private readonly _panel: vscode.WebviewPanel
-  private _preset: NovellaPreset
+  private _options: PreviewOptions
   private _lastUpdate: WebviewUpdate | undefined
   private _watcher: rollup.RollupWatcher | undefined
 
@@ -56,13 +56,13 @@ export class PreviewPanel {
   public static async createOrShow(
     extensionUri: vscode.Uri,
     document: vscode.TextDocument,
-    preset: NovellaPreset
+    options: PreviewOptions
   ) {
     const previewColumn = vscode.ViewColumn.Beside
 
     // If we already have a panel, show it.
     if (PreviewPanel.currentPanel) {
-      PreviewPanel.currentPanel.trackDocument(document, preset)
+      PreviewPanel.currentPanel.trackDocument(document, options)
       PreviewPanel.currentPanel._panel.reveal(previewColumn)
 
       vscode.workspace
@@ -104,7 +104,7 @@ export class PreviewPanel {
       panel,
       extensionUri,
       document,
-      preset
+      options
     )
   }
 
@@ -117,18 +117,18 @@ export class PreviewPanel {
     panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
     document: vscode.TextDocument,
-    preset: NovellaPreset
+    options: PreviewOptions
   ) {
     this._panel = panel
     this._extensionUri = extensionUri
-    this._preset = preset
+    this._options = options
 
     // Listen for when the panel is disposed
     // This happens when the user closes the panel or when the panel is closed programatically
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
     this._update()
 
-    this.trackDocument(document, preset)
+    this.trackDocument(document, options)
   }
 
   public dispose() {
@@ -146,13 +146,13 @@ export class PreviewPanel {
     }
   }
 
-  public trackDocument(document: vscode.TextDocument, preset: NovellaPreset) {
+  public trackDocument(document: vscode.TextDocument, options: PreviewOptions) {
     // Stop watching any existing components
     this._watcher?.close()
 
-    this._preset = preset
+    this._options = options
 
-    this._watcher = rollup.watch(getConfigs(preset, document))
+    this._watcher = rollup.watch(getConfigs(options, document))
     this._watcher.on('event', this._onWatchEvent.bind(this))
 
     this._panel.title = `Preview ${path.basename(document.fileName)}`
@@ -169,6 +169,7 @@ export class PreviewPanel {
   private async _onWatchEvent(event: rollup.RollupWatcherEvent) {
     switch (event.code) {
       case 'ERROR':
+        console.dir(event.error)
         vscode.window.showErrorMessage(event.error.message)
         event.result?.close()
         break
@@ -178,7 +179,10 @@ export class PreviewPanel {
         const { output } = await event.result.generate({
           name: isNovella ? 'novellaData' : 'Component',
           format: 'iife',
-          globals: this._preset.globals,
+          globals: {
+            ...(this._options.augment?.globals ?? {}),
+            ...this._options.preset.globals,
+          },
         })
         event.result.close()
 
@@ -212,6 +216,15 @@ export class PreviewPanel {
       vscode.Uri.joinPath(this._extensionUri, 'assets', 'reset.css')
     )
 
+    const stylesheets = this._options.css ?? []
+    const hasStylesheets = stylesheets.length > 0
+
+    const scripts = [
+      ...(this._options.preset.scripts ?? []),
+      ...(this._options.augment?.scripts ?? []),
+    ]
+    const hasScripts = scripts.length > 0
+
     return `
 <!DOCTYPE html>
 <html>
@@ -219,12 +232,22 @@ export class PreviewPanel {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="${resetCssUri}">
+  ${
+    hasStylesheets
+      ? stylesheets.map(
+          (stylesheetPath) =>
+            `<link rel="stylesheet" href="${path.resolve(
+              stylesheetPath.replace(/<rootDir>/, workspaceUri.fsPath)
+            )}">`
+        )
+      : ''
+  }
 </head>
 <body>
   <div id="preview"></div>
   ${
-    this._preset.scripts
-      ? this._preset.scripts
+    hasScripts
+      ? scripts
           .map(
             (scriptPath) =>
               `<script src=${webview.asWebviewUri(
@@ -234,9 +257,9 @@ export class PreviewPanel {
           .join('\n')
       : ''
   }
-  <script>${update?.component ?? 'const Component = null;\n'}${
+  <script>${update?.component ?? 'const Component = () => null;\n'}${
       update?.novellaData ?? 'const novellaData = null;\n'
-    }${this._preset.render()}</script>
+    }${this._options.preset.render()}</script>
 </body>
 </html>`
   }
