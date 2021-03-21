@@ -39,7 +39,6 @@ function render() {
   }
 
   render() {
-    console.log(this.props.children)
     if (this.state.error) {
       React.createElement(
         'code',

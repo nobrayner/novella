@@ -169,7 +169,6 @@ export class PreviewPanel {
   private async _onWatchEvent(event: rollup.RollupWatcherEvent) {
     switch (event.code) {
       case 'ERROR':
-        console.dir(event.error)
         vscode.window.showErrorMessage(event.error.message)
         event.result?.close()
         break
@@ -184,6 +183,7 @@ export class PreviewPanel {
             ...this._options.preset.globals,
           },
         })
+
         event.result.close()
 
         let allChunkCode = ''
@@ -244,6 +244,15 @@ export class PreviewPanel {
   }
 </head>
 <body>
+  <div id="errors" style="color: var(--vscode-editorError-foreground);padding: 1rem;"></div>
+  <script>
+    const vscode = acquireVsCodeApi()
+    const errors = document.getElementById('errors')
+
+    window.onerror = function (msg, url, line) {
+      errors.innerHTML = msg
+    }
+  </script>
   <div id="preview"></div>
   ${
     hasScripts
