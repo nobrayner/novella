@@ -93,7 +93,11 @@ function getBaseBuildOptions(
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
     external: options.preset.external,
-    plugins: [globalExternals(options.preset.globals ?? {})],
+    plugins: [
+      globalExternals(options.preset.globals ?? {}),
+      ...(options.preset.plugins ?? []),
+      ...(options.augment?.plugins ?? []),
+    ],
     bundle: true,
     format: 'iife',
     minify: true,

@@ -14,8 +14,10 @@ async function getNovellaConfig(): Promise<NovellaConfig | undefined> {
   // TODO: Figure out how to deal with presets properly, and other config stuff
   try {
     delete require.cache[require.resolve(NOVELLA_CONFIG_URI.fsPath)]
-    novellaConfig = await import(NOVELLA_CONFIG_URI.fsPath)
-  } catch {}
+    novellaConfig = await import(require.resolve(NOVELLA_CONFIG_URI.fsPath))
+  } catch (error) {
+    // console.warn(error)
+  }
 
   return novellaConfig
 }
