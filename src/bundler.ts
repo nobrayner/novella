@@ -1,87 +1,106 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import vscode from 'vscode'
+import * as esbuild from 'esbuild'
+import type { BuildOptions, BuildFailure, BuildResult } from 'esbuild'
 import path from 'path'
 import fs from 'fs'
-import { RollupWatchOptions } from 'rollup'
-import { PreviewOptions } from './types'
+import { PreviewOptions, WebviewUpdate } from './types'
 
-import alias from '@rollup/plugin-alias'
-import replace from '@rollup/plugin-replace'
-import commonjs from '@rollup/plugin-commonjs'
-// @ts-ignore
-import image from '@rollup/plugin-image'
-import json from '@rollup/plugin-json'
-import postcss from 'rollup-plugin-postcss'
+import globalExternals from '@fal-works/esbuild-plugin-global-externals'
 
-export function getConfigs(
+let stopWatching: (() => void) | undefined
+
+export async function watchDocument(
   options: PreviewOptions,
-  document: vscode.TextDocument
-): RollupWatchOptions[] {
-  const configs: RollupWatchOptions[] = [
-    {
-      input: path.resolve(document.uri.fsPath),
-      external: [
-        ...(options.preset.externals ?? []),
-        ...(options.augment?.externals ?? []),
-      ],
-      plugins: [
-        alias({
-          entries: Object.entries(options.aliases ?? {}).reduce<{
-            [find: string]: string
-          }>((accume, [aliasKey, aliasPath]) => {
-            accume[aliasKey] = aliasPath.replace(
-              /<rootDir>/,
-              path.resolve(vscode.workspace.workspaceFolders![0].uri.fsPath)
-            )
-
-            return accume
-          }, {}),
-        }),
-        replace({
-          preventAssignment: true,
-          values: {
-            'process.env.NODE_ENV': JSON.stringify('production'),
-          },
-        }),
-        commonjs({
-          include: [/node_modules/],
-        }),
-        image(),
-        json(),
-        postcss({
-          modules: true,
-          autoModules: true,
-          use: ['sass', 'less', 'stylus'],
-        }),
-        ...(options.augment?.plugins ?? []),
-        ...options.preset.plugins,
-      ],
-      watch: {
-        skipWrite: true,
-      },
-    },
-  ]
-
-  const novellaDataPath =
-    document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
-    '.novella.jsx'
+  document: vscode.TextDocument,
+  update: (update?: WebviewUpdate) => void
+) {
+  if (stopWatching) {
+    stopWatching()
+  }
 
   try {
-    fs.statSync(novellaDataPath)
-
-    // A Novella exists for the component, add it to the config list
-    configs.push({
-      input: path.resolve(novellaDataPath),
-      external: [
-        ...(options.preset.externals ?? []),
-        ...(options.augment?.externals ?? []),
-      ],
-      plugins: [...(options.augment?.plugins ?? []), ...options.preset.plugins],
+    const componentResult = await esbuild.build({
+      ...getBaseBuildOptions(options, path.resolve(document.uri.fsPath)),
+      globalName: 'Component',
       watch: {
-        skipWrite: true,
+        onRebuild: onRebuild(update, options),
       },
     })
-  } catch {}
 
-  return configs
+    console.dir(componentResult.outputFiles)
+
+    const novellaDataPath =
+      document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
+      '.novella.jsx'
+
+    const theUpdate: WebviewUpdate = {
+      options,
+      updateCode: {
+        component: Buffer.from(
+          componentResult.outputFiles![0].contents
+        ).toString(),
+      },
+    }
+    try {
+      fs.statSync(novellaDataPath)
+
+      // A Novella exists for the component, compile it and add to update
+      const novellaDataResult = await esbuild.build({
+        ...getBaseBuildOptions(options, path.resolve(novellaDataPath)),
+        globalName: 'novellaData',
+      })
+      theUpdate.updateCode.novellaData = Buffer.from(
+        novellaDataResult.outputFiles![0].contents
+      ).toString()
+    } catch {}
+
+    update(theUpdate)
+
+    stopWatching = componentResult.stop
+  } catch (error) {
+    vscode.window.showErrorMessage(error.message)
+    console.error(error)
+  }
+}
+
+function onRebuild(
+  update: (update?: WebviewUpdate) => void,
+  options: PreviewOptions
+) {
+  return (error: BuildFailure | null, result: BuildResult | null) => {
+    if (error) {
+      vscode.window.showErrorMessage(error.message)
+    } else {
+      update({
+        options,
+        updateCode: {
+          // If there is no error, then there is a result
+          component: Buffer.from(result!.outputFiles![0].contents).toString(),
+        },
+      })
+    }
+  }
+}
+
+function getBaseBuildOptions(
+  options: PreviewOptions,
+  entryPoint: string
+): BuildOptions {
+  return {
+    entryPoints: [entryPoint],
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+    },
+    external: options.preset.external,
+    plugins: [globalExternals(options.preset.globals ?? {})],
+    bundle: true,
+    format: 'iife',
+    minify: true,
+    write: false,
+    outdir: './novella',
+    absWorkingDir: path.resolve(
+      vscode.workspace.workspaceFolders![0].uri.fsPath
+    ),
+  }
 }

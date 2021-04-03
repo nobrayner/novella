@@ -1,24 +1,17 @@
 import { NovellaPreset } from './types'
 
-// @ts-ignore
-import sucrase from '@rollup/plugin-sucrase'
-import nodeResolve from '@rollup/plugin-node-resolve'
-
 const reactPreset: NovellaPreset = {
-  plugins: [
-    nodeResolve({
-      extensions: ['.js', '.ts', '.jsx', '.tsx'],
-      browser: true,
-    }),
-    sucrase({
-      exclude: ['node_modules/**'],
-      transforms: ['jsx', 'typescript'],
-    }),
-  ],
-  externals: ['react', 'react-dom'],
+  // plugins: [],
+  external: ['react', 'react-dom'],
   globals: {
-    react: 'React',
-    'react-dom': 'ReactDOM',
+    react: {
+      varName: 'React',
+      type: 'cjs',
+    },
+    'react-dom': {
+      varName: 'ReactDOM',
+      type: 'cjs',
+    },
   },
   scripts: [
     'react/umd/react.development.js',
@@ -62,8 +55,8 @@ ReactDOM.render(
     null,
     React.createElement(
       ...(novellaData?.wrapper
-      ? [novellaData.wrapper, null, React.createElement(Component, novellaData?.props)]
-      : [Component, novellaData?.props])
+      ? [novellaData.wrapper, null, React.createElement(Component.default, novellaData.default?.props)]
+      : [Component.default, novellaData.default?.props])
     )
   ),
   document.getElementById('preview')

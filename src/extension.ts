@@ -11,12 +11,12 @@ const NOVELLA_CONFIG_URI = vscode.Uri.joinPath(
 async function getNovellaConfig(): Promise<NovellaConfig | undefined> {
   let novellaConfig: NovellaConfig | undefined = undefined
   // TODO: Figure out how to deal with presets properly, and other config stuff
-  try {
-    delete require.cache[require.resolve(NOVELLA_CONFIG_URI.fsPath)]
-    novellaConfig = await import(NOVELLA_CONFIG_URI.fsPath)
-  } catch (error) {
-    console.warn(error)
-  }
+  // try {
+  //   delete require.cache[require.resolve(NOVELLA_CONFIG_URI.fsPath)]
+  //   novellaConfig = await import(NOVELLA_CONFIG_URI.fsPath)
+  // } catch (error) {
+  //   // console.warn(error)
+  // }
   return novellaConfig
 }
 

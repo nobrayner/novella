@@ -1,10 +1,11 @@
-import rollup from 'rollup'
+import type { ModuleInfo } from '@fal-works/esbuild-plugin-global-externals'
+
+export type PresetGlobals = Record<string, string | ModuleInfo>
 
 export type NovellaPreset = {
-  plugins: rollup.Plugin[]
-  externals?: (string | RegExp)[]
-  globals?: rollup.GlobalsOption
+  external?: string[]
   scripts?: string[]
+  globals?: PresetGlobals
   render: () => string
 }
 
@@ -22,3 +23,11 @@ export type NovellaConfig = {
 export type PreviewOptions = {
   preset: NovellaPreset
 } & NovellaConfig
+
+export type WebviewUpdate = {
+  options: PreviewOptions
+  updateCode: {
+    component?: string
+    novellaData?: string
+  }
+}
