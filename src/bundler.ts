@@ -30,19 +30,25 @@ export async function watchDocument(
 
     console.dir(componentResult.outputFiles)
 
-    const novellaDataPath =
-      document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
-      '.novella.jsx'
+    const componentBuffer = componentResult.outputFiles!.filter(({ path }) =>
+      /\.js$/i.test(path)
+    )[0].contents
+    const cssBuffer = componentResult.outputFiles!.filter(({ path }) =>
+      /\.css$/i.test(path)
+    )[0]?.contents
 
     const theUpdate: WebviewUpdate = {
       options,
-      updateCode: {
-        component: Buffer.from(
-          componentResult.outputFiles![0].contents
-        ).toString(),
+      data: {
+        component: Buffer.from(componentBuffer).toString(),
+        css: cssBuffer ? Buffer.from(cssBuffer).toString() : undefined,
       },
     }
+    console.dir(theUpdate)
     try {
+      const novellaDataPath =
+        document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
+        '.novella.jsx'
       fs.statSync(novellaDataPath)
 
       // A Novella exists for the component, compile it and add to update
@@ -50,7 +56,7 @@ export async function watchDocument(
         ...getBaseBuildOptions(options, path.resolve(novellaDataPath)),
         globalName: 'novellaData',
       })
-      theUpdate.updateCode.novellaData = Buffer.from(
+      theUpdate.data.novellaData = Buffer.from(
         novellaDataResult.outputFiles![0].contents
       ).toString()
     } catch {}
@@ -74,7 +80,7 @@ function onRebuild(
     } else {
       update({
         options,
-        updateCode: {
+        data: {
           // If there is no error, then there is a result
           component: Buffer.from(result!.outputFiles![0].contents).toString(),
         },

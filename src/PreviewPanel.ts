@@ -108,7 +108,7 @@ export class PreviewPanel {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview, update?: WebviewUpdate) {
-    const { options, updateCode } = update ?? {}
+    const { options, data } = update ?? {}
 
     const workspaceUri = vscode.workspace.workspaceFolders![0].uri
 
@@ -132,6 +132,7 @@ export class PreviewPanel {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="${resetCssUri}">
+  ${data?.css ? `<style>\n${data.css}</style>` : ''}
   ${
     hasStylesheets
       ? stylesheets.map(
@@ -147,6 +148,7 @@ export class PreviewPanel {
   <div id="errors" style="color: var(--vscode-editorError-foreground);"></div>
   <script>
     (() => {
+      document.querySelector('#_defaultStyles').remove()
       const vscode = acquireVsCodeApi()
 
       const errors = document.getElementById('errors')
@@ -172,8 +174,8 @@ export class PreviewPanel {
       : ''
   }
   <script>
-    ${updateCode?.component ?? 'const Component = { default: () => null };'}
-    ${updateCode?.novellaData ?? 'const novellaData = { default: null }'}
+    ${data?.component ?? 'const Component = { default: () => null };'}
+    ${data?.novellaData ?? 'const novellaData = { default: null }'}
 
     ${options?.preset.render()}
   </script>

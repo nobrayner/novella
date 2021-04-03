@@ -28,8 +28,9 @@ export type PreviewOptions = {
 
 export type WebviewUpdate = {
   options: PreviewOptions
-  updateCode: {
+  data: {
     component?: string
+    css?: string
     novellaData?: string
   }
 }
