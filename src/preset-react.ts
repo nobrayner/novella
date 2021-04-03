@@ -1,7 +1,6 @@
 import { NovellaPreset } from './types'
 
 const reactPreset: NovellaPreset = {
-  // plugins: [],
   external: ['react', 'react-dom'],
   globals: {
     react: {

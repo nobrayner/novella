@@ -1,3 +1,4 @@
+import type { Plugin } from 'esbuild'
 import type { ModuleInfo } from '@fal-works/esbuild-plugin-global-externals'
 
 export type PresetGlobals = Record<string, string | ModuleInfo>
@@ -6,6 +7,7 @@ export type NovellaPreset = {
   external?: string[]
   scripts?: string[]
   globals?: PresetGlobals
+  plugins?: Plugin[]
   render: () => string
 }
 
