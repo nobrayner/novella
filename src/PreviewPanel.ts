@@ -148,12 +148,12 @@ export class PreviewPanel {
   <div id="errors" style="color: var(--vscode-editorError-foreground);"></div>
   <script>
     (() => {
-      document.querySelector('#_defaultStyles').remove()
+      // document.querySelector('#_defaultStyles').remove()
       const vscode = acquireVsCodeApi()
 
       const errors = document.getElementById('errors')
 
-      window.onerror = function (msg, url, line) {
+      window.onconsole = function (msg, url, line) {
         errors.style.padding = '1rem'
         errors.innerHTML = msg
       }

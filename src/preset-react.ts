@@ -48,14 +48,16 @@ function render() {
   }
 }
 
+const exportKey = Object.keys(Component)[0]
+
 ReactDOM.render(
   React.createElement(
     ErrorBoundary,
     null,
     React.createElement(
       ...(novellaData?.wrapper
-      ? [novellaData.wrapper, null, React.createElement(Component.default, novellaData.default?.props)]
-      : [Component.default, novellaData.default?.props])
+      ? [novellaData.wrapper, null, React.createElement(Component[exportKey], novellaData.default?.props)]
+      : [Component[exportKey], novellaData.default?.props])
     )
   ),
   document.getElementById('preview')
