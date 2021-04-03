@@ -173,7 +173,7 @@ export class PreviewPanel {
   }
   <script>
     ${updateCode?.component ?? 'const Component = { default: () => null };'}
-    ${updateCode?.novellaData ?? 'const novellaData = { default: null; }'}
+    ${updateCode?.novellaData ?? 'const novellaData = { default: null }'}
 
     ${options?.preset.render()}
   </script>
