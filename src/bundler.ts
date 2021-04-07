@@ -28,7 +28,9 @@ export async function watchDocument(
       },
     })
 
-    console.dir(componentResult.outputFiles)
+    if (componentResult.warnings.length) {
+      console.log(componentResult.warnings)
+    }
 
     const componentBuffer = componentResult.outputFiles!.filter(({ path }) =>
       /\.js$/i.test(path)
@@ -44,14 +46,14 @@ export async function watchDocument(
         css: cssBuffer ? Buffer.from(cssBuffer).toString() : undefined,
       },
     }
-    console.dir(theUpdate)
+
     try {
       const novellaDataPath =
         document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
         '.novella.jsx'
       fs.statSync(novellaDataPath)
 
-      // A Novella exists for the component, compile it and add to update
+      // Novella component-config file exists for the component, compile it and add to update
       const novellaDataResult = await esbuild.build({
         ...getBaseBuildOptions(options, path.resolve(novellaDataPath)),
         globalName: 'novellaData',
@@ -96,7 +98,7 @@ function getBaseBuildOptions(
   return {
     entryPoints: [entryPoint],
     define: {
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+      'process.env.NODE_ENV': '"development"',
     },
     external: options.preset.external,
     plugins: [

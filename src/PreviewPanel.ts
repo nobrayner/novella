@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import path from 'path'
 import * as bundler from './bundler'
-import { PreviewOptions, WebviewUpdate } from './types'
+import { PreviewOptions, WebviewUpdate, WebviewUpdateData } from './types'
 
 export class PreviewPanel {
   // Track the current panel. Only allow a single panel to exist at a time.
@@ -10,7 +10,7 @@ export class PreviewPanel {
   public static readonly viewType = 'novellaPreview'
 
   private readonly _panel: vscode.WebviewPanel
-  private _lastUpdate: WebviewUpdate | undefined
+  private _lastUpdateData: WebviewUpdateData | undefined
 
   private readonly _extensionUri: vscode.Uri
   private _disposables: vscode.Disposable[] = []
@@ -39,17 +39,19 @@ export class PreviewPanel {
       previewColumn,
       {
         enableScripts: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(
-            vscode.workspace.workspaceFolders![0].uri,
-            'node_modules'
-          ),
-          vscode.Uri.joinPath(extensionUri, 'assets'),
-        ],
+        // localResourceRoots: [
+        //   vscode.workspace.workspaceFolders![0].uri,
+        //   vscode.Uri.joinPath(
+        //     vscode.workspace.workspaceFolders![0].uri,
+        //     'assets',
+        //     'fonts'
+        //   ),
+        //   vscode.Uri.joinPath(extensionUri, 'assets'),
+        // ],
       }
     )
 
-    PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri, options)
+    PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri)
     await PreviewPanel.currentPanel.trackDocument(document, options)
   }
 
@@ -58,11 +60,7 @@ export class PreviewPanel {
     PreviewPanel.currentPanel = undefined
   }
 
-  private constructor(
-    panel: vscode.WebviewPanel,
-    extensionUri: vscode.Uri,
-    options: PreviewOptions
-  ) {
+  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel
     this._extensionUri = extensionUri
 
@@ -100,16 +98,25 @@ export class PreviewPanel {
   }
 
   private _update(update?: WebviewUpdate) {
-    this._panel.webview.html = this._getHtmlForWebview(this._panel.webview, {
-      ...this._lastUpdate!,
-      ...update,
-    })
-    this._lastUpdate = update
+    const updateData = {
+      ...this._lastUpdateData,
+      ...update?.data,
+    }
+
+    this._panel.webview.html = this._getHtmlForWebview(
+      this._panel.webview,
+      update?.options,
+      updateData
+    )
+
+    this._lastUpdateData = updateData
   }
 
-  private _getHtmlForWebview(webview: vscode.Webview, update?: WebviewUpdate) {
-    const { options, data } = update ?? {}
-
+  private _getHtmlForWebview(
+    webview: vscode.Webview,
+    options?: PreviewOptions,
+    updateData?: WebviewUpdateData
+  ) {
     const workspaceUri = vscode.workspace.workspaceFolders![0].uri
 
     const resetCssUri = webview.asWebviewUri(
@@ -132,23 +139,26 @@ export class PreviewPanel {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="${resetCssUri}">
-  ${data?.css ? `<style>\n${data.css}</style>` : ''}
   ${
     hasStylesheets
       ? stylesheets.map(
           (stylesheetPath) =>
-            `<link rel="stylesheet" href="${path.resolve(
-              stylesheetPath.replace(/<rootDir>/, workspaceUri.fsPath)
+            `<link rel="stylesheet" href="${webview.asWebviewUri(
+              vscode.Uri.joinPath(
+                workspaceUri,
+                stylesheetPath.replace(/<rootDir>/, '')
+              )
             )}">`
         )
       : ''
   }
+  ${updateData?.css ? `<style>\n${updateData.css}</style>` : ''}
 </head>
 <body>
   <div id="errors" style="color: var(--vscode-editorError-foreground);"></div>
   <script>
     (() => {
-      // document.querySelector('#_defaultStyles').remove()
+      document.querySelector('#_defaultStyles').remove()
       const vscode = acquireVsCodeApi()
 
       const errors = document.getElementById('errors')
@@ -174,8 +184,8 @@ export class PreviewPanel {
       : ''
   }
   <script>
-    ${data?.component ?? 'const Component = { default: () => null };'}
-    ${data?.novellaData ?? 'const novellaData = { default: null }'}
+    ${updateData?.component ?? 'const Component = { default: () => null };'}
+    ${updateData?.novellaData ?? 'const novellaData = { default: null }'}
 
     ${options?.preset.render()}
   </script>

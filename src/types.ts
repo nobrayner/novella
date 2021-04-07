@@ -26,11 +26,12 @@ export type PreviewOptions = {
   preset: NovellaPreset
 } & NovellaConfig
 
+export type WebviewUpdateData = {
+  component?: string
+  css?: string
+  novellaData?: string
+}
 export type WebviewUpdate = {
   options: PreviewOptions
-  data: {
-    component?: string
-    css?: string
-    novellaData?: string
-  }
+  data: WebviewUpdateData
 }
