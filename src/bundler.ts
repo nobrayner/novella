@@ -20,7 +20,7 @@ export async function watchDocument(
   }
 
   try {
-    const componentResult = await esbuild.build({
+    const result = await esbuild.build({
       ...getBaseBuildOptions(options, path.resolve(document.uri.fsPath)),
       globalName: 'Component',
       watch: {
@@ -28,14 +28,14 @@ export async function watchDocument(
       },
     })
 
-    if (componentResult.warnings.length) {
-      console.log(componentResult.warnings)
+    if (result.warnings.length) {
+      console.log(result.warnings)
     }
 
-    const componentBuffer = componentResult.outputFiles!.filter(({ path }) =>
+    const componentBuffer = result.outputFiles!.filter(({ path }) =>
       /\.js$/i.test(path)
     )[0].contents
-    const cssBuffer = componentResult.outputFiles!.filter(({ path }) =>
+    const cssBuffer = result.outputFiles!.filter(({ path }) =>
       /\.css$/i.test(path)
     )[0]?.contents
 
@@ -65,7 +65,7 @@ export async function watchDocument(
 
     update(theUpdate)
 
-    stopWatching = componentResult.stop
+    stopWatching = result.stop
   } catch (error) {
     vscode.window.showErrorMessage(error.message)
     console.error(error)
@@ -76,15 +76,24 @@ function onRebuild(
   update: (update?: WebviewUpdate) => void,
   options: PreviewOptions
 ) {
-  return (error: BuildFailure | null, result: BuildResult | null) => {
+  return (error: BuildFailure | null, buildResult: BuildResult | null) => {
     if (error) {
       vscode.window.showErrorMessage(error.message)
     } else {
+      const result = buildResult!
+
+      const componentBuffer = result.outputFiles!.filter(({ path }) =>
+        /\.js$/i.test(path)
+      )[0].contents
+      const cssBuffer = result.outputFiles!.filter(({ path }) =>
+        /\.css$/i.test(path)
+      )[0]?.contents
+
       update({
         options,
         data: {
-          // If there is no error, then there is a result
-          component: Buffer.from(result!.outputFiles![0].contents).toString(),
+          component: Buffer.from(componentBuffer).toString(),
+          css: cssBuffer ? Buffer.from(cssBuffer).toString() : undefined,
         },
       })
     }
