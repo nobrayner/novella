@@ -7,6 +7,10 @@ import fs from 'fs'
 import { PreviewOptions, WebviewUpdate } from './types'
 
 import globalExternals from '@fal-works/esbuild-plugin-global-externals'
+// @ts-ignore
+import postCssModules from 'esbuild-plugin-postcss2'
+
+const vscodeWorkspacePath = vscode.workspace.workspaceFolders![0].uri.fsPath
 
 let stopWatching: (() => void) | undefined
 
@@ -107,14 +111,32 @@ function getBaseBuildOptions(
   return {
     entryPoints: [entryPoint],
     define: {
-      'process.env.NODE_ENV': '"development"',
+      process: JSON.stringify({
+        env: {
+          NODE_ENV: 'development',
+        },
+      }),
     },
     external: options.preset.external,
     plugins: [
       globalExternals(options.preset.globals ?? {}),
+      postCssModules({
+        sassOptions: {
+          includePaths: [vscodeWorkspacePath],
+        },
+        lessOptions: {
+          paths: [vscodeWorkspacePath],
+        },
+        stylusOptions: {
+          paths: [vscodeWorkspacePath],
+        },
+      }),
       ...(options.preset.plugins ?? []),
       ...(options.augment?.plugins ?? []),
     ],
+    loader: {
+      '.png': 'dataurl',
+    },
     bundle: true,
     format: 'iife',
     minify: true,
