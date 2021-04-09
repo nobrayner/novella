@@ -8,7 +8,7 @@ export type NovellaPreset = {
   scripts?: string[]
   globals?: PresetGlobals
   plugins?: Plugin[]
-  render: () => string
+  render: (component: any, props: any) => void
 }
 
 type Aliases = {

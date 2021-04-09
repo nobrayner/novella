@@ -1,5 +1,4 @@
-import { NovellaPreset } from './types'
-
+// @ts-nocheck
 const reactPreset: NovellaPreset = {
   external: ['react', 'react-dom'],
   globals: {
@@ -19,49 +18,47 @@ const reactPreset: NovellaPreset = {
   render,
 }
 
-function render() {
-  return `class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { error: undefined };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { error };
-  }
-
-  render() {
-    if (this.state.error) {
-      React.createElement(
-        'code',
-        {
-          style: {
-            color: 'var(--vscode-editorError-foreground)',
-            padding: '1rem',
-          }
-        },
-        this.state.error.toString()
-      );
+function render(component, props, wrapper) {
+  class ErrorBoundary extends React.Component {
+    constructor(props) {
+      super(props)
+      this.state = { error: undefined }
     }
 
-    return this.props.children; 
+    static getDerivedStateFromError(error) {
+      return { error }
+    }
+
+    render() {
+      if (this.state.error) {
+        React.createElement(
+          'code',
+          {
+            style: {
+              color: 'var(--vscode-editorError-foreground)',
+              padding: '1rem',
+            },
+          },
+          this.state.error.toString()
+        )
+      }
+
+      return this.props.children
+    }
   }
-}
 
-const exportKey = Object.keys(Component)[0]
-
-ReactDOM.render(
-  React.createElement(
-    ErrorBoundary,
-    null,
+  ReactDOM.render(
     React.createElement(
-      ...(novellaData?.wrapper
-      ? [novellaData.wrapper, null, React.createElement(Component[exportKey], novellaData.default?.props)]
-      : [Component[exportKey], novellaData.default?.props])
-    )
-  ),
-  document.getElementById('preview')
-);`
+      ErrorBoundary,
+      null,
+      React.createElement(
+        ...(wrapper
+          ? [wrapper, null, React.createElement(component, props)]
+          : [component, props])
+      )
+    ),
+    document.getElementById('preview')
+  )
 }
 
 export default reactPreset

@@ -185,9 +185,20 @@ export class PreviewPanel {
   }
   <script>
     ${updateData?.component ?? 'const Component = { default: () => null };'}
-    ${updateData?.novellaData ?? 'const novellaData = { default: null }'}
+    ${updateData?.novellaData ?? 'const novellaData = { default: null };'}
 
-    ${options?.preset.render()}
+    // Actually render the component
+    ${
+      options?.preset.render
+        ? `${options?.preset.render.toString()};
+    
+    render(
+      Component[Object.keys(Component)[0]],
+      novellaData.default?.props,
+      novellaData.default?.wrapper
+    );`
+        : ''
+    };
   </script>
 </body>
 </html>`
