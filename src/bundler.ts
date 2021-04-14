@@ -138,6 +138,8 @@ function getBaseBuildOptions(
     ],
     loader: {
       '.png': 'dataurl',
+      '.jpeg': 'dataurl',
+      '.jpg': 'dataurl',
     },
     bundle: true,
     format: 'iife',
