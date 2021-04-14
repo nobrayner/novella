@@ -69,6 +69,7 @@
 	},
 	"dependencies": {
 		"@fal-works/esbuild-plugin-global-externals": "^2.1.1",
+		"@svgr/core": "^5.5.0",
 		"esbuild": "~0.11.6",
 		"esbuild-plugin-postcss2": "^0.0.9"
 	}

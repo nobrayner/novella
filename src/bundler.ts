@@ -9,6 +9,7 @@ import { PreviewOptions, WebviewUpdate } from './types'
 import globalExternals from '@fal-works/esbuild-plugin-global-externals'
 // @ts-ignore
 import postCssModules from 'esbuild-plugin-postcss2'
+import svgPlugin from './svgPlugin'
 
 const vscodeWorkspacePath = vscode.workspace.workspaceFolders![0].uri.fsPath
 
@@ -131,6 +132,7 @@ function getBaseBuildOptions(
           paths: [vscodeWorkspacePath],
         },
       }),
+      svgPlugin(),
       ...(options.preset.plugins ?? []),
       ...(options.augment?.plugins ?? []),
     ],
