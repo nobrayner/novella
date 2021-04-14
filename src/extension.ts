@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { PreviewPanel } from './PreviewPanel'
-import presetReact from './preset-react'
+import presetReact from './presetReact'
 import { NovellaConfig } from './types'
 
 const NOVELLA_CONFIG_URI = vscode.Uri.joinPath(
