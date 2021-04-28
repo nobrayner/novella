@@ -1,0 +1,30 @@
+html {
+  box-sizing: border-box;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: white;
+}
+
+#controls {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  background-color: black;
+  z-index: 99999999999999999999999999999999999999999999999;
+  opacity: 0.8;
+  padding: 0.25rem;
+  border-radius: 6px;
+}
+#props-editor {
+  background-color: lightgrey;
+}

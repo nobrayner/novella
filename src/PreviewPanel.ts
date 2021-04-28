@@ -67,6 +67,7 @@ export class PreviewPanel {
     // Listen for when the panel is disposed
     // This happens when the user closes the panel or when the panel is closed programatically
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
+    this._panel.webview.onDidReceiveMessage(this._receiveMessage)
     this._update()
   }
 
@@ -97,6 +98,18 @@ export class PreviewPanel {
     return this._panel.viewColumn
   }
 
+  private _receiveMessage(payload: { type: 'error'; message: string }) {
+    switch (payload.type) {
+      case 'error':
+        vscode.window.showErrorMessage(payload.message)
+        break
+      default:
+        vscode.window.showInformationMessage(
+          'Unknown message: ' + JSON.stringify(payload)
+        )
+    }
+  }
+
   private _update(update?: WebviewUpdate) {
     const updateData = {
       ...this._lastUpdateData,
@@ -119,8 +132,8 @@ export class PreviewPanel {
   ) {
     const workspaceUri = vscode.workspace.workspaceFolders![0].uri
 
-    const resetCssUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'assets', 'reset.css')
+    const mainCssUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'assets', 'main.css')
     )
 
     const stylesheets = options?.css ?? []
@@ -138,7 +151,7 @@ export class PreviewPanel {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="${resetCssUri}">
+  <link rel="stylesheet" href="${mainCssUri}">
   ${
     hasStylesheets
       ? stylesheets.map(
@@ -155,22 +168,24 @@ export class PreviewPanel {
   ${updateData?.css ? `<style>\n${updateData.css}</style>` : ''}
 </head>
 <body>
-  <div id="errors" style="color: var(--vscode-editorError-foreground);"></div>
   <script>
     (() => {
       document.querySelector('#_defaultStyles').remove()
       const vscode = acquireVsCodeApi()
-
-      const errors = document.getElementById('errors')
-
-      window.onconsole = function (msg, url, line) {
-        errors.style.padding = '1rem'
-        errors.innerHTML = msg
+      
+      window.onerror = function (msg, url, line) {
+        vscode.postMessage({
+          type: 'error',
+          message: msg,
+        })
       }
     })()
     delete globalThis.acquireVsCodeApi
   </script>
   <div id="preview"></div>
+  <div id="controls">
+    <textarea id="props-editor" oninput="debouncedRerender(event)"></textarea>
+  </div>
   ${
     hasScripts
       ? scripts
@@ -192,11 +207,38 @@ export class PreviewPanel {
       options?.preset.render
         ? `${options?.preset.render.toString()};
     
+    const componentKey = Object.keys(Component)[0];
+
+    document.getElementById('props-editor').innerHTML = JSON.stringify(novellaData.default?.props, null, 2) ?? '';
     render(
-      Component[Object.keys(Component)[0]],
+      Component[componentKey],
       novellaData.default?.props,
       novellaData.default?.wrapper
-    );`
+    );
+    
+    function debounce(func, timeout = 300){
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+      };
+    }
+    const debouncedRerender = debounce((event) => {
+      try {
+        const props = JSON.parse(event.target.value)
+        render(
+          Component[componentKey],
+          props,
+          novellaData.default?.wrapper
+        );
+      } catch(error) {
+        render(
+          () => React.createElement('p', { style: { backgroundColor: 'var(--vscode-editorError-foreground)' } }, error.toString()),
+          null,
+          null,
+        )
+      }
+    })`
         : ''
     };
   </script>

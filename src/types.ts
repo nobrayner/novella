@@ -11,15 +11,9 @@ export type NovellaPreset = {
   render: (component: any, props: any) => void
 }
 
-type Aliases = {
-  [alias: string]: string
-}
-
 export type NovellaConfig = {
-  aliases?: Aliases
   augment?: Partial<Omit<NovellaPreset, 'render'>>
   css?: string[]
-  // preset?: NovellaPreset
 }
 
 export type PreviewOptions = {
