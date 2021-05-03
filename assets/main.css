@@ -15,16 +15,23 @@ body {
   background-color: white;
 }
 
-#controls {
+#props-editor {
   position: absolute;
   right: 1rem;
   top: 1rem;
-  background-color: black;
+  bottom: 1rem;
   z-index: 99999999999999999999999999999999999999999999999;
   opacity: 0.8;
-  padding: 0.25rem;
+  padding: 0.75rem;
   border-radius: 6px;
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  box-shadow: 0px 0px 6px grey;
+  resize: none;
 }
-#props-editor {
-  background-color: lightgrey;
+#props-editor::before {
+  width: 1rem;
+  height: 1rem;
+  background-color: black;
+  content: '';
 }

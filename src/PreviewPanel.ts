@@ -183,9 +183,7 @@ export class PreviewPanel {
     delete globalThis.acquireVsCodeApi
   </script>
   <div id="preview"></div>
-  <div id="controls">
-    <textarea id="props-editor" oninput="debouncedRerender(event)"></textarea>
-  </div>
+  <textarea id="props-editor" oninput="debouncedRerender(event)" cols="40" rows="6"></textarea>
   ${
     hasScripts
       ? scripts
