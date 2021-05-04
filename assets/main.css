@@ -15,23 +15,47 @@ body {
   background-color: white;
 }
 
+:root {
+  --border-radius: 6px;
+}
+
 #props-editor {
   position: absolute;
   right: 1rem;
   top: 1rem;
   bottom: 1rem;
   z-index: 99999999999999999999999999999999999999999999999;
-  opacity: 0.8;
+  opacity: 0.9;
+  box-shadow: 0px 0px 6px grey;
+  border-radius: var(--border-radius);
+  min-width: 40ch;
+  max-width: calc(100vw - 2rem);
+}
+#props-editor .resize-bar {
+  position: absolute;
+  left: 0;
+  width: 0.25rem;
+  height: 100%;
+  background-color: var(--vscode-editor-background);
+  border-top-left-radius: var(--border-radius);
+  border-bottom-left-radius: var(--border-radius);
+}
+#props-editor .resize-bar:hover {
+  cursor: col-resize;
+  background-color: rgba(0, 0, 0, 0.55);
+}
+#props-editor textarea {
+  border: none;
+  position: absolute;
+  bottom: 0;
+  top: 0;
+  left: 0.25rem;
   padding: 0.75rem;
-  border-radius: 6px;
   background-color: var(--vscode-editor-background);
   color: var(--vscode-editor-foreground);
-  box-shadow: 0px 0px 6px grey;
   resize: none;
-}
-#props-editor::before {
-  width: 1rem;
-  height: 1rem;
-  background-color: black;
-  content: '';
+  width: calc(100% - 0.25rem);
+  box-sizing: border-box;
+  border-top-right-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
 }

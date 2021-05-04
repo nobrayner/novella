@@ -183,7 +183,10 @@ export class PreviewPanel {
     delete globalThis.acquireVsCodeApi
   </script>
   <div id="preview"></div>
-  <textarea id="props-editor" oninput="debouncedRerender(event)" cols="40" rows="6"></textarea>
+  <div id="props-editor">
+    <textarea oninput="debouncedRerender(event)"></textarea>
+    <div class="resize-bar"></div>
+  </div>
   ${
     hasScripts
       ? scripts
@@ -197,17 +200,18 @@ export class PreviewPanel {
       : ''
   }
   <script>
+    /*
+     * COMPONENT
+     */
     ${updateData?.component ?? 'const Component = { default: () => null };'}
     ${updateData?.novellaData ?? 'const novellaData = { default: null };'}
 
-    // Actually render the component
     ${
       options?.preset.render
         ? `${options?.preset.render.toString()};
     
     const componentKey = Object.keys(Component)[0];
 
-    document.getElementById('props-editor').innerHTML = JSON.stringify(novellaData.default?.props, null, 2) ?? '';
     render(
       Component[componentKey],
       novellaData.default?.props,
@@ -236,7 +240,29 @@ export class PreviewPanel {
           null,
         )
       }
-    })`
+    })
+    
+    /*
+     * PROPS EDITOR
+     */
+    document.querySelector('#props-editor>textarea').innerHTML = JSON.stringify(novellaData.default?.props, null, 2) ?? '';
+    function boxResizer(selector) {
+      const box = document.querySelector(selector);
+      const resizeBar = box.querySelector(".resize-bar");
+
+      resizeBar.addEventListener("mousedown", (e) => {
+        window.addEventListener("mousemove", doResize);
+        window.addEventListener("mouseup", () =>
+          window.removeEventListener("mousemove", doResize)
+        );
+      });
+
+      function doResize(e) {
+        const rect = box.getBoundingClientRect();
+        box.style.width = rect.width - (e.pageX - rect.left) + "px";
+      }
+    }
+    boxResizer("#props-editor");`
         : ''
     };
   </script>
