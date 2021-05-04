@@ -28,13 +28,13 @@ body {
   opacity: 0.9;
   box-shadow: 0px 0px 6px grey;
   border-radius: var(--border-radius);
-  min-width: 40ch;
+  min-width: 30ch;
   max-width: calc(100vw - 2rem);
 }
 #props-editor .resize-bar {
   position: absolute;
   left: 0;
-  width: 0.25rem;
+  width: 0.35rem;
   height: 100%;
   background-color: var(--vscode-editor-background);
   border-top-left-radius: var(--border-radius);
@@ -49,13 +49,20 @@ body {
   position: absolute;
   bottom: 0;
   top: 0;
-  left: 0.25rem;
+  left: 0.35rem;
   padding: 0.75rem;
   background-color: var(--vscode-editor-background);
   color: var(--vscode-editor-foreground);
   resize: none;
-  width: calc(100% - 0.25rem);
+  width: calc(100% - 0.35rem);
   box-sizing: border-box;
   border-top-right-radius: var(--border-radius);
   border-bottom-right-radius: var(--border-radius);
+}
+#props-editor textarea:focus {
+  border: none;
+  outline: none;
+}
+#props-editor:focus {
+  outline: inherit;
 }
