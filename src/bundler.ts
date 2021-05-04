@@ -52,21 +52,16 @@ export async function watchDocument(
       },
     }
 
-    try {
-      const novellaDataPath =
-        document.uri.fsPath.substring(0, document.uri.fsPath.lastIndexOf('.')) +
-        '.novella.jsx'
-      fs.statSync(novellaDataPath)
-
-      // Novella component-config file exists for the component, compile it and add to update
-      const novellaDataResult = await esbuild.build({
-        ...getBaseBuildOptions(options, path.resolve(novellaDataPath)),
-        globalName: 'novellaData',
-      })
-      theUpdate.data.novellaData = Buffer.from(
-        novellaDataResult.outputFiles![0].contents
-      ).toString()
-    } catch {}
+    // Try for a tsx first
+    theUpdate.data.novellaData = await getNovellaData('tsx', document, options)
+    if (!theUpdate.data.novellaData) {
+      // Try for jsx if there wasn't tsx
+      theUpdate.data.novellaData = await getNovellaData(
+        'jsx',
+        document,
+        options
+      )
+    }
 
     update(theUpdate)
 
@@ -102,6 +97,32 @@ function onRebuild(
         },
       })
     }
+  }
+}
+
+async function getNovellaData(
+  extension: 'tsx' | 'jsx',
+  document: vscode.TextDocument,
+  options: PreviewOptions
+) {
+  const novellaDataPathNoExt = document.uri.fsPath.substring(
+    0,
+    document.uri.fsPath.lastIndexOf('.')
+  )
+  const novellaDataPath = novellaDataPathNoExt + `.novella.${extension}`
+
+  try {
+    fs.statSync(novellaDataPath)
+
+    // Novella component-config file exists for the component, compile it and add to update
+    const novellaDataResult = await esbuild.build({
+      ...getBaseBuildOptions(options, path.resolve(novellaDataPath)),
+      globalName: 'novellaData',
+    })
+
+    return Buffer.from(novellaDataResult.outputFiles![0].contents).toString()
+  } catch {
+    return undefined
   }
 }
 
