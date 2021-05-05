@@ -22,7 +22,6 @@ export class PreviewPanel {
   ) {
     const previewColumn = vscode.ViewColumn.Beside
 
-    // If we already have a panel, show it.
     if (PreviewPanel.currentPanel) {
       await PreviewPanel.currentPanel.trackDocument(document, options)
       PreviewPanel.currentPanel._panel.reveal(previewColumn)
@@ -32,22 +31,12 @@ export class PreviewPanel {
 
     const currentViewColumn = vscode.window.activeTextEditor?.viewColumn ?? 1
 
-    // Create a new panel
     const panel = vscode.window.createWebviewPanel(
       PreviewPanel.viewType,
       `Preview ${path.basename(document.fileName)}`,
       previewColumn,
       {
         enableScripts: true,
-        // localResourceRoots: [
-        //   vscode.workspace.workspaceFolders![0].uri,
-        //   vscode.Uri.joinPath(
-        //     vscode.workspace.workspaceFolders![0].uri,
-        //     'assets',
-        //     'fonts'
-        //   ),
-        //   vscode.Uri.joinPath(extensionUri, 'assets'),
-        // ],
       }
     )
 
@@ -64,8 +53,6 @@ export class PreviewPanel {
     this._panel = panel
     this._extensionUri = extensionUri
 
-    // Listen for when the panel is disposed
-    // This happens when the user closes the panel or when the panel is closed programatically
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
     this._panel.webview.onDidReceiveMessage(this._receiveMessage)
     this._update()
@@ -74,7 +61,6 @@ export class PreviewPanel {
   public dispose() {
     PreviewPanel.currentPanel = undefined
 
-    // Clean up our resources
     this._panel.dispose()
 
     while (this._disposables.length) {
