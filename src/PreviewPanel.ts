@@ -200,6 +200,26 @@ export class PreviewPanel {
       : ''
   }
   <script>
+    function prepareProps(props) {
+      if (props) {
+        const newProps = {};
+
+        Object.entries(props).forEach(([k, v]) => {
+          const splitKey = k.split('::');
+          // TODO: Support different types of tags other than function (for arbitrary transformations) (MAYBE??)
+          if (splitKey[1] && splitKey[1] === 'function') {
+            newProps[splitKey[0]] = () => v;
+          } else {
+            newProps[k] = v;
+          }
+        })
+
+        return newProps;
+      }
+
+      return undefined;
+    }
+
     /*
      * COMPONENT
      */
@@ -214,7 +234,7 @@ export class PreviewPanel {
 
     render(
       Component[componentKey],
-      novellaData.default?.props,
+      prepareProps(novellaData.default?.props),
       novellaData.default?.wrapper
     );
     
@@ -227,7 +247,7 @@ export class PreviewPanel {
     }
     const debouncedRerender = debounce((event) => {
       try {
-        const props = JSON.parse(event.target.value)
+        const props = prepareProps(JSON.parse(event.target.value))
         render(
           Component[componentKey],
           props,
