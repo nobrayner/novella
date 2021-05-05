@@ -241,8 +241,8 @@ export class PreviewPanel {
         );
       } catch(error) {
         render(
-          () => React.createElement('p', { style: { backgroundColor: 'var(--vscode-editorError-foreground)' } }, error.toString()),
-          null,
+          ${updateData?.errorComponent?.toString()},
+          { errorMessage: error.toString() },
           null,
         )
       }

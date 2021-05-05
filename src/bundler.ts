@@ -47,6 +47,7 @@ export async function watchDocument(
     const theUpdate: WebviewUpdate = {
       options,
       data: {
+        errorComponent: options.preset.errorComponent,
         component: Buffer.from(componentBuffer).toString(),
         css: cssBuffer ? Buffer.from(cssBuffer).toString() : undefined,
       },

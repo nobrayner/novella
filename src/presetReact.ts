@@ -16,6 +16,7 @@ const reactPreset: NovellaPreset = {
     'react-dom/umd/react-dom.development.js',
   ],
   render,
+  errorComponent,
 }
 
 function render(component, props, wrapper) {
@@ -59,6 +60,10 @@ function render(component, props, wrapper) {
     ),
     document.getElementById('preview')
   )
+}
+
+function errorComponent({ errorMessage }) {
+  return React.createElement('p', { style: { backgroundColor: 'var(--vscode-editorError-foreground)' } }, errorMessage)
 }
 
 export default reactPreset

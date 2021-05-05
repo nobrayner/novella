@@ -8,7 +8,9 @@ export type NovellaPreset = {
   scripts?: string[]
   globals?: PresetGlobals
   plugins?: Plugin[]
-  render: (component: any, props: any) => void
+  render: (component: any, props: any, wrapper: any) => void
+  // FIXME: Needs @types/react to be typed correctly (React Component)
+  errorComponent: Function
 }
 
 export type NovellaConfig = {
@@ -24,6 +26,7 @@ export type WebviewUpdateData = {
   component?: string
   css?: string
   novellaData?: string
+  errorComponent?: Function
 }
 export type WebviewUpdate = {
   options: PreviewOptions
