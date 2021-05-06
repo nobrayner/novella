@@ -186,15 +186,18 @@ export class PreviewPanel {
       : ''
   }
   <script>
+    const TAG_MAP = {
+      function: (value) => (() => value),
+      date: (value) => new Date(value),
+    }
     function prepareProps(props) {
       if (props) {
         const newProps = {};
 
         Object.entries(props).forEach(([k, v]) => {
           const splitKey = k.split('::');
-          // TODO: Support different types of tags other than function (for arbitrary transformations) (MAYBE??)
-          if (splitKey[1] && splitKey[1] === 'function') {
-            newProps[splitKey[0]] = () => v;
+          if (splitKey[1]) {
+            newProps[splitKey[0]] = TAG_MAP[splitKey[1]](v);
           } else {
             newProps[k] = v;
           }
