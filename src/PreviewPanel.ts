@@ -197,7 +197,7 @@ export class PreviewPanel {
         Object.entries(props).forEach(([k, v]) => {
           const splitKey = k.split('::');
           if (splitKey[1]) {
-            newProps[splitKey[0]] = TAG_MAP[splitKey[1]](v);
+            newProps[splitKey[0]] = TAG_MAP[splitKey[1].toLowerCase()](v);
           } else {
             newProps[k] = v;
           }
