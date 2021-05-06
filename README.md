@@ -36,25 +36,29 @@ Component config includes the following properties:
 - `wrapper` : A React component to wrap around the preview component. This is useful for components that need to be inside a context provider, or are only ever a child of certain other component.
 - `props` : An object that describes the props to be passed to the preview component. Must be serializable as JSON. For function props, see the below section ':warning: Function Props'
 
-### :warning: Function Props
+### :warning: Non-serializable Props
 
-Functions are not serializable as JSON, and so Novella has a to provide a special syntax to work around this.
+Not all values are serializable to JSON, and so Novella has a to provide a special syntax to work around this, in the form of a `::tagname` tag appended to the prop name.
 
-Any prop that needs to be turned into a function needs to have the `::function` tag appended to the prop name, and the value is the value you want the function to return.
+Available tags:
 
-For example, the following component has the `user` function that provides an objec with the name, and age of the user.
+- `::function` : Converts the JSON value into a function that takes no arguments, and returns the JSON value `() => JSON_VALUE`
+- `::date` : Converts the JSON value into a date by calling `new Date(JSON_VALUE)`
+
+For example, the following component has the `user` function that provides an object with the name and age of the user, and so needs the `::function` tag. Similarly, it takes a `dob` prop that is a date, and so needs to the `::date` tag.
 
 ```javascript
 // Profile.jsx
 import * as React from "react";
 
-export const Profile = ({ user }) => {
+export const Profile = ({ user, dob }) => {
   const { name, age } = user();
 
   return (
     <>
       <h1>Hello, {name}!</h1>
       <p>You appear to be {age} years old... Ouch</p>
+      <p>You were born on: {dob.toISOString()}</p>
     </>
   );
 };
@@ -70,6 +74,7 @@ export default {
       name: "Octocat",
       age: 23,
     },
+    "dob::date": "1987-21-04",
   },
 };
 ```
