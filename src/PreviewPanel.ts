@@ -9,6 +9,8 @@ export class PreviewPanel {
 
   public static readonly viewType = 'novellaPreview'
 
+  private readonly _globalState: vscode.Memento
+
   private readonly _panel: vscode.WebviewPanel
   private _lastUpdateData: WebviewUpdateData | undefined
 
@@ -17,6 +19,7 @@ export class PreviewPanel {
 
   public static async createOrShow(
     extensionUri: vscode.Uri,
+    globalState: vscode.Memento,
     document: vscode.TextDocument,
     options: PreviewOptions
   ) {
@@ -29,8 +32,6 @@ export class PreviewPanel {
       return
     }
 
-    const currentViewColumn = vscode.window.activeTextEditor?.viewColumn ?? 1
-
     const panel = vscode.window.createWebviewPanel(
       PreviewPanel.viewType,
       `Preview ${path.basename(document.fileName)}`,
@@ -40,7 +41,11 @@ export class PreviewPanel {
       }
     )
 
-    PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri)
+    PreviewPanel.currentPanel = new PreviewPanel(
+      panel,
+      extensionUri,
+      globalState
+    )
     await PreviewPanel.currentPanel.trackDocument(document, options)
   }
 
@@ -49,12 +54,17 @@ export class PreviewPanel {
     PreviewPanel.currentPanel = undefined
   }
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+  private constructor(
+    panel: vscode.WebviewPanel,
+    extensionUri: vscode.Uri,
+    globalState: vscode.Memento
+  ) {
     this._panel = panel
     this._extensionUri = extensionUri
+    this._globalState = globalState
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
-    this._panel.webview.onDidReceiveMessage(this._receiveMessage)
+    this._panel.webview.onDidReceiveMessage(this._receiveMessage.bind(this))
     this._update()
   }
 
@@ -84,10 +94,16 @@ export class PreviewPanel {
     return this._panel.viewColumn
   }
 
-  private _receiveMessage(payload: { type: 'error'; message: string }) {
+  private _receiveMessage(payload: {
+    type: 'error' | 'resize-prop-editor'
+    message: string
+  }) {
     switch (payload.type) {
       case 'error':
         vscode.window.showErrorMessage(payload.message)
+        break
+      case 'resize-prop-editor':
+        this._globalState.update('props-editor-width', payload.message)
         break
       default:
         vscode.window.showInformationMessage(
@@ -104,6 +120,7 @@ export class PreviewPanel {
 
     this._panel.webview.html = this._getHtmlForWebview(
       this._panel.webview,
+      this._globalState,
       update?.options,
       updateData
     )
@@ -113,6 +130,7 @@ export class PreviewPanel {
 
   private _getHtmlForWebview(
     webview: vscode.Webview,
+    globalState: vscode.Memento,
     options?: PreviewOptions,
     updateData?: WebviewUpdateData
   ) {
@@ -130,6 +148,8 @@ export class PreviewPanel {
       ...(options?.augment?.scripts ?? []),
     ]
     const hasScripts = scripts.length > 0
+
+    const initialPropsEditorWidth = globalState.get('props-editor-width')
 
     return `
 <!DOCTYPE html>
@@ -154,25 +174,36 @@ export class PreviewPanel {
   ${updateData?.css ? `<style>\n${updateData.css}</style>` : ''}
 </head>
 <body>
+  <div id="preview"></div>
+  <div id="props-editor"${
+    initialPropsEditorWidth ? ` style="width: ${initialPropsEditorWidth};"` : ''
+  }>
+    <textarea oninput="debouncedRerender(event)"></textarea>
+    <div class="resize-bar"></div>
+  </div>
   <script>
-    (() => {
+    const { updatePropsEditorSize } = (() => {
       document.querySelector('#_defaultStyles').remove()
-      const vscode = acquireVsCodeApi()
-      
+      const vscode = acquireVsCodeApi();
+
       window.onerror = function (msg, url, line) {
         vscode.postMessage({
           type: 'error',
           message: msg,
-        })
+        });
       }
+
+      const updatePropsEditorSize = (newSize) => vscode.postMessage({
+        type: 'resize-prop-editor',
+        message: newSize,
+      });
+
+      return {
+        updatePropsEditorSize
+      };
     })()
-    delete globalThis.acquireVsCodeApi
+    delete globalThis.acquireVsCodeApi;
   </script>
-  <div id="preview"></div>
-  <div id="props-editor">
-    <textarea oninput="debouncedRerender(event)"></textarea>
-    <div class="resize-bar"></div>
-  </div>
   ${
     hasScripts
       ? scripts
@@ -186,6 +217,9 @@ export class PreviewPanel {
       : ''
   }
   <script>
+    /*
+     * PROPS
+     */
     const TAG_MAP = {
       function: (value) => (() => value),
       date: (value) => new Date(value),
@@ -210,6 +244,17 @@ export class PreviewPanel {
     }
 
     /*
+     * HELPERS
+     */
+    function debounce(func, timeout = 300){
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+      };
+    }
+
+    /*
      * COMPONENT
      */
     ${updateData?.component ?? 'const Component = { default: () => null };'}
@@ -227,13 +272,6 @@ export class PreviewPanel {
       novellaData.default?.wrapper
     );
     
-    function debounce(func, timeout = 300){
-      let timer;
-      return (...args) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => { func.apply(this, args); }, timeout);
-      };
-    }
     const debouncedRerender = debounce((event) => {
       try {
         const props = prepareProps(JSON.parse(event.target.value))
@@ -254,6 +292,8 @@ export class PreviewPanel {
     /*
      * PROPS EDITOR
      */
+    const debouncedUpdatePropsEditorSize = debounce((newSize) => updatePropsEditorSize(newSize))
+
     document.querySelector('#props-editor>textarea').innerHTML = JSON.stringify(novellaData.default?.props, null, 2) ?? '';
     function boxResizer(selector) {
       const box = document.querySelector(selector);
@@ -268,7 +308,9 @@ export class PreviewPanel {
 
       function doResize(e) {
         const rect = box.getBoundingClientRect();
-        box.style.width = rect.width - (e.pageX - rect.left) + "px";
+        const newSize = rect.width - (e.pageX - rect.left) + "px"
+        box.style.width = newSize;
+        debouncedUpdatePropsEditorSize(newSize);
       }
     }
     boxResizer("#props-editor");`

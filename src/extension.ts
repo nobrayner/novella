@@ -33,10 +33,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
       const activeDocument = vscode.window.activeTextEditor.document
 
-      await PreviewPanel.createOrShow(context.extensionUri, activeDocument, {
-        preset,
-        ...config,
-      })
+      await PreviewPanel.createOrShow(
+        context.extensionUri,
+        context.globalState,
+        activeDocument,
+        {
+          preset,
+          ...config,
+        }
+      )
     })
   )
 }
