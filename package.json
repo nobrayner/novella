@@ -8,7 +8,7 @@
 		"type": "git",
 		"url": "https://github.com/nobrayner/novella"
 	},
-	"version": "0.9.2",
+	"version": "0.10.0",
 	"license": "GNU GPLv3",
 	"engines": {
 		"vscode": "^1.53.0"
@@ -17,15 +17,42 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:novella.preview"
+		"onCommand:novella.preview.show"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "novella.preview",
+				"command": "novella.preview.show",
 				"category": "Novella",
-				"title": "Start Preview",
+				"title": "Preview Component",
+				"icon": {
+					"light": "assets/search-dark.svg",
+					"dark": "assets/search-light.svg"
+				}
+			},
+			{
+				"command": "novella.preview.reload",
+				"category": "Novella Preview",
+				"title": "Reload",
+				"icon": {
+					"light": "assets/reload-dark.svg",
+					"dark": "assets/reload-light.svg"
+				}
+			},
+			{
+				"command": "novella.preview.props-editor.hide",
+				"category": "Novella Preview",
+				"title": "Hide Props Editor",
+				"icon": {
+					"light": "assets/eye-closed-dark.svg",
+					"dark": "assets/eye-closed-light.svg"
+				}
+			},
+			{
+				"command": "novella.preview.props-editor.show",
+				"category": "Novella Preview",
+				"title": "Show Props Editor",
 				"icon": {
 					"light": "assets/eye-dark.svg",
 					"dark": "assets/eye-light.svg"
@@ -35,14 +62,29 @@
 		"menus": {
 			"editor/title": [
 				{
-					"command": "novella.preview",
-					"when": "editorLangId == typescriptreact",
+					"command": "novella.preview.show",
+					"when": "editorLangId == typescriptreact && resourceFilename =~ /(?<!\\.novella)\\.tsx/",
 					"group": "navigation"
 				},
 				{
-					"command": "novella.preview",
-					"when": "editorLangId == javascriptreact",
+					"command": "novella.preview.show",
+					"when": "editorLangId == javascriptreact && resourceFilename =~ /(?<!\\.novella)\\.jsx/",
 					"group": "navigation"
+				},
+				{
+					"command": "novella.preview.props-editor.show",
+					"when": "novella.preview.focus && !novella.preview.props-editor",
+					"group": "navigation@0"
+				},
+				{
+					"command": "novella.preview.props-editor.hide",
+					"when": "novella.preview.focus && novella.preview.props-editor",
+					"group": "navigation@0"
+				},
+				{
+					"command": "novella.preview.reload",
+					"when": "novella.preview.focus",
+					"group": "navigation@1"
 				}
 			]
 		}

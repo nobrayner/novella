@@ -2,12 +2,15 @@ import * as vscode from 'vscode'
 import path from 'path'
 import * as bundler from './bundler'
 import { PreviewOptions, WebviewUpdate, WebviewUpdateData } from './types'
+import * as STATE_KEYS from './globalStateKeys'
+
+const NOVELLA_PREVIEW_FOCUS_CONTEXT_KEY = 'novella.preview.focus'
 
 export class PreviewPanel {
   // Track the current panel. Only allow a single panel to exist at a time.
   public static currentPanel: PreviewPanel | undefined
 
-  public static readonly viewType = 'novellaPreview'
+  public static readonly viewType = 'novella.preview'
 
   private readonly _globalState: vscode.Memento
 
@@ -23,6 +26,12 @@ export class PreviewPanel {
     document: vscode.TextDocument,
     options: PreviewOptions
   ) {
+    vscode.commands.executeCommand(
+      'setContext',
+      NOVELLA_PREVIEW_FOCUS_CONTEXT_KEY,
+      true
+    )
+
     const previewColumn = vscode.ViewColumn.Beside
 
     if (PreviewPanel.currentPanel) {
@@ -65,6 +74,17 @@ export class PreviewPanel {
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
     this._panel.webview.onDidReceiveMessage(this._receiveMessage.bind(this))
+    this._panel.onDidChangeViewState(
+      ({ webviewPanel }) => {
+        vscode.commands.executeCommand(
+          'setContext',
+          NOVELLA_PREVIEW_FOCUS_CONTEXT_KEY,
+          webviewPanel.active
+        )
+      },
+      null,
+      this._disposables
+    )
     this._update()
   }
 
@@ -94,6 +114,13 @@ export class PreviewPanel {
     return this._panel.viewColumn
   }
 
+  public setPropsEditorVisibility(isVisible: boolean) {
+    this._panel.webview.postMessage({
+      type: 'props-editor-visibility',
+      isVisible,
+    })
+  }
+
   private _receiveMessage(payload: {
     type: 'error' | 'resize-prop-editor'
     message: string
@@ -103,7 +130,7 @@ export class PreviewPanel {
         vscode.window.showErrorMessage(payload.message)
         break
       case 'resize-prop-editor':
-        this._globalState.update('props-editor-width', payload.message)
+        this._globalState.update(STATE_KEYS.PROPS_EDITOR_WIDTH, payload.message)
         break
       default:
         vscode.window.showInformationMessage(
@@ -149,7 +176,17 @@ export class PreviewPanel {
     ]
     const hasScripts = scripts.length > 0
 
-    const initialPropsEditorWidth = globalState.get('props-editor-width')
+    const propsEditorWidth = globalState.get(STATE_KEYS.PROPS_EDITOR_WIDTH)
+    const initialPropsEditorWidth = propsEditorWidth
+      ? `width: ${propsEditorWidth};`
+      : ''
+
+    const propsEditorVisibility = globalState.get(
+      STATE_KEYS.PROPS_EDITOR_VISIBLE
+    )
+    const initialPropsEditorVisibility = propsEditorVisibility
+      ? ''
+      : 'visibility: hidden;'
 
     return `
 <!DOCTYPE html>
@@ -175,16 +212,25 @@ export class PreviewPanel {
 </head>
 <body>
   <div id="preview"></div>
-  <div id="props-editor"${
-    initialPropsEditorWidth ? ` style="width: ${initialPropsEditorWidth};"` : ''
-  }>
+  <div id="props-editor" style="${initialPropsEditorWidth} ${initialPropsEditorVisibility}">
     <textarea oninput="debouncedRerender(event)"></textarea>
     <div class="resize-bar"></div>
   </div>
   <script>
     const { updatePropsEditorSize } = (() => {
-      document.querySelector('#_defaultStyles').remove()
+      document.querySelector('#_defaultStyles').remove();
       const vscode = acquireVsCodeApi();
+
+      const propsEditor = document.getElementById('props-editor')
+      window.addEventListener('message', (event) => {
+        const payload = event.data;
+        
+        switch (payload.type) {
+          case 'props-editor-visibility':
+            propsEditor.style.visibility = payload.isVisible ? 'visible' : 'hidden';
+            break;
+        }
+      });
 
       window.onerror = function (msg, url, line) {
         vscode.postMessage({
@@ -201,7 +247,7 @@ export class PreviewPanel {
       return {
         updatePropsEditorSize
       };
-    })()
+    })();
     delete globalThis.acquireVsCodeApi;
   </script>
   ${
