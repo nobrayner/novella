@@ -144,6 +144,7 @@ function getBaseBuildOptions(
     plugins: [
       globalExternals(options.preset.globals ?? {}),
       postCssModules({
+        rootDir: vscodeWorkspacePath,
         sassOptions: {
           includePaths: [vscodeWorkspacePath],
         },
