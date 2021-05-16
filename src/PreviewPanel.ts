@@ -326,7 +326,8 @@ export class PreviewPanel {
     
     const debouncedRerender = debounce((event) => {
       try {
-        const props = prepareProps(JSON.parse(event.target.value))
+        const jsonProps = event.target.value;
+        const props = jsonProps ? prepareProps(JSON.parse(jsonProps)) : null;
         render(
           Component[componentKey],
           props,
@@ -337,7 +338,7 @@ export class PreviewPanel {
           ${updateData?.errorComponent?.toString()},
           { errorMessage: error.toString() },
           null,
-        )
+        );
       }
     })
     
