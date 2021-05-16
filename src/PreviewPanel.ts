@@ -89,7 +89,6 @@ export class PreviewPanel {
       null,
       this._disposables
     )
-    this._update()
   }
 
   public dispose() {
@@ -111,7 +110,19 @@ export class PreviewPanel {
   ) {
     this._document = document
 
-    await bundler.watchDocument(options, document, this._update.bind(this))
+    await bundler.watchDocument(
+      options,
+      document,
+      (initialData: WebviewUpdate) => {
+        this._panel.webview.html = this._getHtmlForWebview(
+          this._panel.webview,
+          this._globalState,
+          initialData?.options,
+          initialData.data
+        )
+      },
+      this._update.bind(this)
+    )
 
     this._panel.title = `Preview ${path.basename(document.fileName)}`
   }
@@ -145,18 +156,16 @@ export class PreviewPanel {
     }
   }
 
-  private _update(update?: WebviewUpdate) {
+  private _update(update: WebviewUpdate) {
     const updateData = {
       ...this._lastUpdateData,
       ...update?.data,
     }
 
-    this._panel.webview.html = this._getHtmlForWebview(
-      this._panel.webview,
-      this._globalState,
-      update?.options,
-      updateData
-    )
+    this._panel.webview.postMessage({
+      type: 'update',
+      updateData,
+    })
 
     this._lastUpdateData = updateData
   }
@@ -164,8 +173,8 @@ export class PreviewPanel {
   private _getHtmlForWebview(
     webview: vscode.Webview,
     globalState: vscode.Memento,
-    options?: PreviewOptions,
-    updateData?: WebviewUpdateData
+    options: PreviewOptions,
+    initialData: WebviewUpdateData
   ) {
     const workspaceUri = vscode.workspace.workspaceFolders![0].uri
 
@@ -173,12 +182,12 @@ export class PreviewPanel {
       vscode.Uri.joinPath(this._extensionUri, 'assets', 'main.css')
     )
 
-    const stylesheets = options?.css ?? []
+    const stylesheets = options.css ?? []
     const hasStylesheets = stylesheets.length > 0
 
     const scripts = [
-      ...(options?.preset.scripts ?? []),
-      ...(options?.augment?.scripts ?? []),
+      ...(options.preset.scripts ?? []),
+      ...(options.augment?.scripts ?? []),
     ]
     const hasScripts = scripts.length > 0
 
@@ -214,7 +223,7 @@ export class PreviewPanel {
         )
       : ''
   }
-  ${updateData?.css ? `<style>\n${updateData.css}</style>` : ''}
+  <style id="component-styles">${initialData.css ? initialData.css : ''}</style>
 </head>
 <body>
   <div id="preview"></div>
@@ -227,13 +236,32 @@ export class PreviewPanel {
       document.querySelector('#_defaultStyles').remove();
       const vscode = acquireVsCodeApi();
 
-      const propsEditor = document.getElementById('props-editor')
+      const propsEditor = document.getElementById('props-editor');
+      const componentStyles = document.getElementById('component-styles');
+      const propsEditorTextarea = document.querySelector('#props-editor>textarea');      
+
       window.addEventListener('message', (event) => {
         const payload = event.data;
         
         switch (payload.type) {
           case 'props-editor-visibility':
             propsEditor.style.visibility = payload.isVisible ? 'visible' : 'hidden';
+            break;
+          case 'update':
+            componentStyles.innerHTML = payload.updateData.css ?? '';
+
+            try {
+              Component = eval(payload.updateData.component.replace('var Component=', ''));
+
+              rerender(propsEditorTextarea.value);
+            } catch(error) {
+              render(
+                ${initialData.errorComponent?.toString()},
+                { errorMessage: error.toString() },
+                null,
+              );
+            }
+
             break;
         }
       });
@@ -309,14 +337,13 @@ export class PreviewPanel {
     /*
      * COMPONENT
      */
-    ${updateData?.component ?? 'const Component = { default: () => null };'}
-    ${updateData?.novellaData ?? 'const novellaData = { default: null };'}
+    ${initialData.component ?? 'let Component = { default: () => null };'}
+    ${initialData.novellaData ?? 'const novellaData = { default: null };'}
+    const componentKey = Object.keys(Component)[0];
 
     ${
-      options?.preset.render
-        ? `${options?.preset.render.toString()};
-    
-    const componentKey = Object.keys(Component)[0];
+      options.preset.render
+        ? `${options.preset.render.toString()};
 
     render(
       Component[componentKey],
@@ -324,9 +351,8 @@ export class PreviewPanel {
       novellaData.default?.wrapper
     );
     
-    const debouncedRerender = debounce((event) => {
+    function rerender(jsonProps) {
       try {
-        const jsonProps = event.target.value;
         const props = jsonProps ? prepareProps(JSON.parse(jsonProps)) : null;
         render(
           Component[componentKey],
@@ -335,12 +361,14 @@ export class PreviewPanel {
         );
       } catch(error) {
         render(
-          ${updateData?.errorComponent?.toString()},
+          ${initialData.errorComponent?.toString()},
           { errorMessage: error.toString() },
           null,
         );
       }
-    })
+    }
+
+    const debouncedRerender = debounce((event) => rerender(event.target.value));
     
     /*
      * PROPS EDITOR

@@ -18,7 +18,8 @@ let stopWatching: (() => void) | undefined
 export async function watchDocument(
   options: PreviewOptions,
   document: vscode.TextDocument,
-  update: (update?: WebviewUpdate) => void
+  initialLoad: (update: WebviewUpdate) => void,
+  update: (update: WebviewUpdate) => void
 ) {
   if (stopWatching) {
     stopWatching()
@@ -64,7 +65,7 @@ export async function watchDocument(
       )
     }
 
-    update(theUpdate)
+    initialLoad(theUpdate)
 
     stopWatching = result.stop
   } catch (error) {
@@ -74,7 +75,7 @@ export async function watchDocument(
 }
 
 function onRebuild(
-  update: (update?: WebviewUpdate) => void,
+  update: (update: WebviewUpdate) => void,
   options: PreviewOptions
 ) {
   return (error: BuildFailure | null, buildResult: BuildResult | null) => {
