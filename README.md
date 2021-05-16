@@ -49,10 +49,10 @@ For example, the following component has the `user` function that provides an ob
 
 ```javascript
 // Profile.jsx
-import * as React from "react";
+import * as React from 'react'
 
 export const Profile = ({ user, dob }) => {
-  const { name, age } = user();
+  const { name, age } = user()
 
   return (
     <>
@@ -60,8 +60,8 @@ export const Profile = ({ user, dob }) => {
       <p>You appear to be {age} years old... Ouch</p>
       <p>You were born on: {dob.toISOString()}</p>
     </>
-  );
-};
+  )
+}
 ```
 
 This would require the following component config to work as expected:
@@ -70,21 +70,21 @@ This would require the following component config to work as expected:
 // Profile.novella.jsx
 export default {
   props: {
-    "user::function": {
-      name: "Octocat",
+    'user::function': {
+      name: 'Octocat',
       age: 23,
     },
-    "dob::date": "1987-21-04",
+    'dob::date': '1987-21-04',
   },
-};
+}
 ```
 
 ## Props Panel
 
 As part of opening the component preview, the props panel will also be displayed if there are any props defined in the `.novella.(j|t)sx` file. This will allow live-editing of the props, so that you can see how the component behaves with different props in real time.
 
-![Changing props in the props panel updates the component](docs/edit-props-panel.gif)
+![Changing props in the props panel updates the component](docs/edit-props.gif)
 
 The props panel can be resized horizontally by hovering the mouse over the left-hand edge, and clicking and dragging.
 
-![Resizing props panel](dos/resize-props-panel.gif)
+![Resizing props panel](docs/resize-props-editor.gif)
