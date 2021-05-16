@@ -63,8 +63,14 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       )
     }),
-    vscode.commands.registerCommand('novella.preview.reload', () => {
-      vscode.window.showInformationMessage('Command TBD')
+    vscode.commands.registerCommand('novella.preview.reload', async () => {
+      const config = await getNovellaConfig()
+      const preset = presetReact
+
+      PreviewPanel.currentPanel?.reload({
+        preset,
+        ...config,
+      })
     }),
     vscode.commands.registerCommand('novella.preview.props-editor.hide', () => {
       vscode.commands.executeCommand(

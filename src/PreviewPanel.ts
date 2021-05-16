@@ -16,6 +16,7 @@ export class PreviewPanel {
 
   private readonly _panel: vscode.WebviewPanel
   private _lastUpdateData: WebviewUpdateData | undefined
+  private _document: vscode.TextDocument
 
   private readonly _extensionUri: vscode.Uri
   private _disposables: vscode.Disposable[] = []
@@ -53,7 +54,8 @@ export class PreviewPanel {
     PreviewPanel.currentPanel = new PreviewPanel(
       panel,
       extensionUri,
-      globalState
+      globalState,
+      document
     )
     await PreviewPanel.currentPanel.trackDocument(document, options)
   }
@@ -66,11 +68,13 @@ export class PreviewPanel {
   private constructor(
     panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
-    globalState: vscode.Memento
+    globalState: vscode.Memento,
+    document: vscode.TextDocument
   ) {
     this._panel = panel
     this._extensionUri = extensionUri
     this._globalState = globalState
+    this._document = document
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables)
     this._panel.webview.onDidReceiveMessage(this._receiveMessage.bind(this))
@@ -105,13 +109,15 @@ export class PreviewPanel {
     document: vscode.TextDocument,
     options: PreviewOptions
   ) {
+    this._document = document
+
     await bundler.watchDocument(options, document, this._update.bind(this))
 
     this._panel.title = `Preview ${path.basename(document.fileName)}`
   }
 
-  public viewColumn() {
-    return this._panel.viewColumn
+  public reload(options: PreviewOptions) {
+    this.trackDocument(this._document, options)
   }
 
   public setPropsEditorVisibility(isVisible: boolean) {
