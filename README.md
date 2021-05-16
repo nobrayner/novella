@@ -45,7 +45,7 @@ Available tags:
 - `::function` : Converts the JSON value into a function that takes no arguments, and returns the JSON value `() => JSON_VALUE`
 - `::date` : Converts the JSON value into a date by calling `new Date(JSON_VALUE)`
 
-For example, the following component has the `user` function that provides an object with the name and age of the user, and so needs the `::function` tag. Similarly, it takes a `dob` prop that is a date, and so needs to the `::date` tag.
+For example, the following component has the `user` function that provides an object with the name and age of the user, and so needs the `::function` tag. Similarly, it takes a `dob` prop that is a date, and so needs the `::date` tag.
 
 ```javascript
 // Profile.jsx
